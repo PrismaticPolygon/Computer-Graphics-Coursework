@@ -5,25 +5,26 @@ var cubeRotation = 0.0;
 
 const vsSource = `
     attribute vec4 aVertexPosition;
-    attribute vec4 aVertexColor;
+    attribute vec2 aTextureCoord;
     
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
     
-    varying lowp vec4 vColor;
+    varying highp vec2 vTextureCoord;
     
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-      vColor = aVertexColor;
+      vTextureCoord = aTextureCoord;
     }
 `;
 
 const fsSource = `
-    varying lowp vec4 vColor;
-
+    varying highp vec2 vTextureCoord;
+    
+    uniform sampler2D uSampler;
 
     void main() {
-      gl_FragColor = vColor;
+      gl_FragColor = texture2D(uSampler, vTextureCoord);
     }
   `;
 
@@ -114,29 +115,44 @@ function initBuffers(gl) {
   // Pass the list of positions into WebGL as a Float32Array
    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-    const faceColors = [
-        [1.0,  1.0,  1.0,  1.0],    // Front face: white
-        [1.0,  0.0,  0.0,  1.0],    // Back face: red
-        [0.0,  1.0,  0.0,  1.0],    // Top face: green
-        [0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
-        [1.0,  1.0,  0.0,  1.0],    // Right face: yellow
-        [1.0,  0.0,  1.0,  1.0],    // Left face: purple
+    const textureCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+
+    const textureCoordinates = [
+        // Front
+        0.0,  0.0,
+        1.0,  0.0,
+        1.0,  1.0,
+        0.0,  1.0,
+        // Back
+        0.0,  0.0,
+        1.0,  0.0,
+        1.0,  1.0,
+        0.0,  1.0,
+        // Top
+        0.0,  0.0,
+        1.0,  0.0,
+        1.0,  1.0,
+        0.0,  1.0,
+        // Bottom
+        0.0,  0.0,
+        1.0,  0.0,
+        1.0,  1.0,
+        0.0,  1.0,
+        // Right
+        0.0,  0.0,
+        1.0,  0.0,
+        1.0,  1.0,
+        0.0,  1.0,
+        // Left
+        0.0,  0.0,
+        1.0,  0.0,
+        1.0,  1.0,
+        0.0,  1.0,
     ];
 
-    let colors= [];
-
-    for (var j = 0; j < faceColors.length; j++) {
-
-        const c = faceColors[j];
-
-        colors = colors.concat(c, c, c, c);
-
-    }
-
-
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoordinates),
+        gl.STATIC_DRAW);
 
     const indexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -154,13 +170,62 @@ function initBuffers(gl) {
 
   return {
       position: positionBuffer,
-      color: colorBuffer,
+      textureCoord: textureCoordBuffer,
       indices: indexBuffer
   };
 
 }
 
-function drawScene(gl, programInfo, buffers, deltaTime) {
+function loadTexture(gl, url) {
+
+    function isPowerOf2(value) {
+
+        return (value & (value - 1)) == 0;
+
+    }
+
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    const level = 0;
+    const internalFormat = gl.RBGA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RBGA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]);
+
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, srcFormat, srcType, pixel);
+
+    // Fucking dumb, right? I CAN SEE THE IMAGE.
+
+    const image = new Image();
+    image.crossOrigin = "";
+    image.onload = function () {
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, srcFormat, srcType, image);
+
+        if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+            // Yes, it's a power of 2. Generate mips.
+            gl.generateMipmap(gl.TEXTURE_2D);
+        } else {
+            // No, it's not a power of 2. Turn off mips and set
+            // wrapping to clamp to edge
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        }
+    };
+
+    image.src = url;
+
+    return texture;
+
+}
+
+function drawScene(gl, programInfo, buffers, texture, deltaTime) {
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
@@ -208,25 +273,21 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
     }
 
     {
-
-        const numComponents = 4;
+        const numComponents = 2;
         const type = gl.FLOAT;
         const normalize = false;
         const stride = 0;
         const offset = 0;
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord);
         gl.vertexAttribPointer(
-            programInfo.attribLocations.vertexColor,
+            programInfo.attribLocations.textureCoord,
             numComponents,
             type,
             normalize,
             stride,
-            offset
-        );
-
-        gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
-
+            offset);
+        gl.enableVertexAttribArray(
+            programInfo.attribLocations.textureCoord);
     }
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
@@ -244,6 +305,14 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
         false,
         modelViewMatrix
     );
+
+    gl.activeTexture(gl.TEXTURE0);
+
+    // Bind the texture to texture unit 0
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // Tell the shader we bound the texture to texture unit 0
+    gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
 
     {
         const vertexCount = 36;
@@ -278,15 +347,17 @@ function main() {
       program: shaderProgram,
       attribLocations: {
           vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-          vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor')
+          textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord')
       },
       uniformLocations: {
           projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-          modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix')
+          modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+          uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
       }
   };
 
   const buffers = initBuffers(gl);
+  const texture = loadTexture(gl, './textures/texture.jpg');
 
   var then = 0;
 
@@ -296,7 +367,7 @@ function main() {
       const deltaTime = now - then;
       then = now;
 
-      drawScene(gl, programInfo, buffers, deltaTime);
+      drawScene(gl, programInfo, buffers, texture, deltaTime);
 
       requestAnimationFrame(render);
 
