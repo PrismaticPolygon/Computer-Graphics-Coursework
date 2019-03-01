@@ -1,19 +1,29 @@
 // Best guess is that my import here is somehow breaking things.
+// But why? What does that change?
+
+var squareRotation = 0.0;
 
 const vsSource = `
     attribute vec4 aVertexPosition;
+    attribute vec4 aVertexColor;
     
     uniform mat4 uModelViewMatrix;
     uniform mat4 uProjectionMatrix;
     
+    varying lowp vec4 vColor;
+    
     void main() {
       gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+      vColor = aVertexColor;
     }
 `;
 
 const fsSource = `
+    varying lowp vec4 vColor;
+
+
     void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+      gl_FragColor = vColor;
     }
   `;
 
@@ -73,13 +83,26 @@ function initBuffers(gl) {
   // Pass the list of positions into WebGL as a Float32Array
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
+  const colorBuffer = gl.createBuffer();
+
+  const colors = [
+      1.0, 1.0, 1.0, 1.0,
+      1.0, 0.0, 0.0, 1.0,
+      0.0, 1.0, 0.0, 1.0,
+      0.0, 0.0, 1.0, 1.0
+  ];
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
   return {
-      position: positionBuffer
+      position: positionBuffer,
+      color: colorBuffer
   };
 
 }
 
-function drawScene(gl, programInfo, buffers) {
+function drawScene(gl, programInfo, buffers, deltaTime) {
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
@@ -101,6 +124,8 @@ function drawScene(gl, programInfo, buffers) {
 
     mat4.translate(modelViewMatrix, modelViewMatrix, [-0.0, 0.0, -6.0]);
 
+    mat4.rotate(modelViewMatrix, modelViewMatrix, squareRotation, [0, 0, 1]);
+
     {
 
         const numComponents = 2;
@@ -120,6 +145,28 @@ function drawScene(gl, programInfo, buffers) {
         );
 
         gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+
+    }
+
+    {
+
+        const numComponents = 4;
+        const type = gl.FLOAT;
+        const normalize = false;
+        const stride = 0;
+        const offset = 0;
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+        gl.vertexAttribPointer(
+            programInfo.attribLocations.vertexColor,
+            numComponents,
+            type,
+            normalize,
+            stride,
+            offset
+        );
+
+        gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 
     }
 
@@ -144,6 +191,8 @@ function drawScene(gl, programInfo, buffers) {
 
     }
 
+    squareRotation += deltaTime;
+
 }
 
 function main() {
@@ -166,7 +215,8 @@ function main() {
   const programInfo = {
       program: shaderProgram,
       attribLocations: {
-          vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition')
+          vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+          vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor')
       },
       uniformLocations: {
           projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -176,6 +226,20 @@ function main() {
 
   const buffers = initBuffers(gl);
 
-  drawScene(gl, programInfo, buffers)
+  var then = 0;
+
+  function render(now) {
+
+      now *= 0.001;
+      const deltaTime = now - then;
+      then = now;
+
+      drawScene(gl, programInfo, buffers, deltaTime);
+
+      requestAnimationFrame(render);
+
+  }
+
+  requestAnimationFrame(render);
 
 }
