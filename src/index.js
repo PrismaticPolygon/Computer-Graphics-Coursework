@@ -1,7 +1,6 @@
-// Best guess is that my import here is somehow breaking things.
-// But why? What does that change?
+import { mat4 } from "../lib/gl-matrix"
 
-var cubeRotation = 0.0;
+let cubeRotation = 0.0;
 
 const vsSource = `
     attribute vec4 aVertexPosition;
@@ -19,6 +18,7 @@ const vsSource = `
 `;
 
 const fsSource = `
+
     varying highp vec2 vTextureCoord;
     
     uniform sampler2D uSampler;
@@ -180,7 +180,7 @@ function loadTexture(gl, url) {
 
     function isPowerOf2(value) {
 
-        return (value & (value - 1)) == 0;
+        return (value & (value - 1)) === 0;
 
     }
 
@@ -359,7 +359,7 @@ function main() {
   const buffers = initBuffers(gl);
   const texture = loadTexture(gl, 'http://localhost:8000/texture.jpg');
 
-  var then = 0;
+  let then = 0;
 
   function render(now) {
 
@@ -376,3 +376,5 @@ function main() {
   requestAnimationFrame(render);
 
 }
+
+main();

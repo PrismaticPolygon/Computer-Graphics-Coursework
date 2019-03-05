@@ -1,0 +1,22 @@
+{
+  "name": "Computer-Graphics-Coursework",
+  "version": "1.0.0",
+  "description": "Just a simple project",
+  "private": true,
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-2": "^6.24.1",
+    "raw-loader": "^0.5.1",
+    "webpack": "^4.20.2",
+    "webpack-cli": "^3.1.1",
+    "webpack-dev-server": "^3.1.1"
+  },
+  "scripts": {
+    "develop": "webpack-dev-server --hot --inline --mode development",
+    "build": "webpack --mode production"
+  }
+}
