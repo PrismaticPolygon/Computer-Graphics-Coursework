@@ -1,6 +1,6 @@
-import createShader from './create-shader';
+import { createShader } from './create-shader';
 
-const createProgram = (gl, vsSource, fsSource) => {
+export const createProgram = (gl, vsSource, fsSource) => {
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vsSource);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
