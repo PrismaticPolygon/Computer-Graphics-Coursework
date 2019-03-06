@@ -4,30 +4,62 @@ import { createProgram, loadTexture, getWebGLContent } from "../lib/utils";
 let cubeRotation = 0.0;
 
 const vsSource = `
-    attribute vec4 aVertexPosition;
-    attribute vec2 aTextureCoord;
+
+    attribute vec4 a_Position;
+    attribute vec4 a_Color;
+    attribute vec4 a_Normal;
     
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
+    uniform mat4 u_ModelMatrix;
+    uniform mat4 u_NormalMatrix;
+    uniform mat4 u_ViewMatrix;
+    uniform mat4 u_ProjMatrix;
     
-    varying highp vec2 vTextureCoord;
+    uniform vec3 u_LightColor;
+    uniform vec3 u_LightDirection;
+    
+    varying vec4 v_Color;
+    
+    uniform bool u_isLighting;
     
     void main() {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-      vTextureCoord = aTextureCoord;
+    
+        gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
+        
+        if (u_isLighting) {
+        
+            vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);
+            float nDotL = max(dot(normal, u_LightDirection), 0.0);
+            
+            vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;
+            v_Color = vec4(diffuse, a_Color.a);
+            
+        } else {
+        
+            v_Color = a_Color;
+        }
+        
     }
+    
 `;
 
 const fsSource = `
 
-    varying highp vec2 vTextureCoord;
+    #ifdef GL_ES
     
-    uniform sampler2D uSampler;
-
+        precision mediump float;
+        
+    #endif
+    
+    varying vec4 v_Color;
+    
     void main() {
-      gl_FragColor = texture2D(uSampler, vTextureCoord);
+    
+        gl_FragColor = v_Color;
+        
     }
 `;
+
+// It's not worth it, Dom...
 
 function initBuffers(gl) {
 
@@ -238,6 +270,25 @@ function drawScene(gl, programInfo, buffers, texture, deltaTime) {
 
 }
 
+function lighting(gl, u_LightColor, u_LightDirection) {
+
+    gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
+
+    const lightDirection = new Vector3([0.5, 3.0, 4.0]);
+
+    lightDirection.normalize();
+    gl.uniform3fv(u_LightDirection, lightDirection.elements);
+
+}
+
+function perspective(g1, canvas, uViewMatrix, uProjectionMatrix) {
+
+    viewMatrix = mat4
+
+    viewMatrix.setLookAt(0, 0, 15, 0, 0, -100, 0, 1, 0);
+
+}
+
 function main() {
 
   const canvas = document.getElementById('webgl');  // Canvas element
@@ -252,13 +303,19 @@ function main() {
       program: shaderProgram,
       attribLocations: {
           vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-          textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord')
+          textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
+          n
       },
       uniformLocations: {
-          projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-          modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-          uSampler: gl.getUniformLocation(shaderProgram, 'uSampler'),
+          modelMatrix: gl.getUniformLocation(shaderProgram, 'u_ModelMatrix'),
+          normalMatrix: gl.getUniformLocation(shaderProgram, 'u_NormalMatrix'),
+          viewMatrix: gl.getUniformLocation(shaderProgram, 'u_ViewMatrix'),
+          projectionMatrix: gl.getUniformLocation(shaderProgram, 'u_ProjMatrix'),
+          lightColor: gl.getUniformLocation(shaderProgram, 'u_LightColor'),
+          lightDirection: gl.getUniformLocation(shaderProgram, 'u_LightDirection'),
+          isLighting: gl.getUniformLocation(shaderProgram, 'u_isLighting')
       }
+
   };
 
   const buffers = initBuffers(gl);
