@@ -1,6 +1,5 @@
 import { mat4 } from "../lib/gl-matrix"
-import { createProgram } from "./create-program";
-import { loadTexture } from "./load-texture"
+import { createProgram, loadTexture, getWebGLContent } from "../lib/utils";
 
 let cubeRotation = 0.0;
 
@@ -242,14 +241,7 @@ function drawScene(gl, programInfo, buffers, texture, deltaTime) {
 function main() {
 
   const canvas = document.getElementById('webgl');  // Canvas element
-  const gl = canvas.getContext("webgl");  // WebGL context
-
-  if (gl === null) {
-
-      alert("Unable to initialise WebGL. Your browser or machine may not support it.");
-      return;
-
-  }
+  const gl = getWebGLContent(canvas); // WebGL context
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
