@@ -6,7 +6,7 @@ const BUILD_DIR = path.resolve(__dirname, 'dist');
 // const NODE_ENV = process.env.NODE_ENV;
 
 const config = {
-  entry: `${APP_DIR}/index.js`,
+  entry: `${APP_DIR}/new.js`,
   output: {
     path: BUILD_DIR,
     filename: 'assets/js/bundle.js',

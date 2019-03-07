@@ -59,8 +59,6 @@ const fsSource = `
     }
 `;
 
-// It's not worth it, Dom...
-
 function initBuffers(gl) {
 
   const positionBuffer = gl.createBuffer(); // Create a buffer for the square's position
@@ -296,15 +294,16 @@ function main() {
 
   gl.clearColor(0.0, 0.0, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST);
 
   const shaderProgram = createProgram(gl, vsSource, fsSource);
 
   const programInfo = {
       program: shaderProgram,
       attribLocations: {
-          vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-          textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord'),
-          n
+          vertexPosition: gl.getAttribLocation(shaderProgram, 'a_Position'),
+          colorPosition: gl.getAttribLocation(shaderProgram, 'a_Color'),
+          normalPosition: gl.getAttribLocation(shaderProgram, 'a_Normal')
       },
       uniformLocations: {
           modelMatrix: gl.getUniformLocation(shaderProgram, 'u_ModelMatrix'),
@@ -317,6 +316,9 @@ function main() {
       }
 
   };
+
+  // Ah, then we draw using the program info, I'm guessing? Yes indeed
+    // Argh! There's so much going on!
 
   const buffers = initBuffers(gl);
   const texture = loadTexture(gl, 'http://localhost:8000/texture.jpg');

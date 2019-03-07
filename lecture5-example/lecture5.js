@@ -31,7 +31,7 @@ var VSHADER_SOURCE =
   '  else\n' +
   '  {\n' +
   '     v_Color = a_Color;\n' +
-  '  }\n' + 
+  '  }\n' +
   '}\n';
 
 // Fragment shader program
