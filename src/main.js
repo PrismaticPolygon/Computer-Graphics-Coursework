@@ -3,6 +3,7 @@ const VSHADER_SOURCE = `
     attribute vec4 a_Position;
     attribute vec4 a_Color;
     attribute vec4 a_Normal;
+    attribute vec2 a_TextureCoord;
     
     uniform mat4 u_ModelMatrix;
     uniform mat4 u_NormalMatrix;
@@ -13,6 +14,7 @@ const VSHADER_SOURCE = `
     uniform vec3 u_LightDirection;
     
     varying vec4 v_Color;
+    varying highp vec2 v_TextureCoord;
     
     uniform bool u_isLighting;
     
@@ -32,6 +34,8 @@ const VSHADER_SOURCE = `
         
             v_Color = a_Color;
         }
+        
+        v_TextureCoord = a_TextureCoord;
         
     }
     
@@ -64,10 +68,13 @@ const FSHADER_SOURCE = `
     #endif
     
     varying vec4 v_Color;
+    varying highp vec2 v_TextureCoord;
+    
+    uniform sampler2D u_Sampler; 
     
     void main() {
     
-        gl_FragColor = v_Color;
+        gl_FragColor = texture2D(u_Sampler, v_TextureCoord);
         
     }
 `;
@@ -83,10 +90,14 @@ var g_yAngle = 0.0;    // The rotation y angle (degrees)
 // This stupid-ass nigga has his shaders in index.html. This is too low-level, there's TOO much flexibility.
 // For now: I'm just trying to draw multiple objects, yo!
 
+let texture;
+
 function main() {
 
     const canvas = document.getElementById('webgl'); // Retrieve <canvas> element
     const gl = getWebGLContext(canvas); // Get the webGL context
+
+    texture = loadTexture(gl, brick);
 
     initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
 
@@ -196,6 +207,7 @@ function initObjectVertexBuffers(gl, object) {
     if (!initArrayBuffer(gl, 'a_Position', object.vertices, 3, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_Color', object.colors, 3, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_Normal', object.normals, 3, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_TextureCoord', object.textureCoordinates, 3, gl.FLOAT)) return -1;
 
     // Write the indices to the buffer object
     let indexBuffer = gl.createBuffer();
@@ -253,6 +265,8 @@ let objects = {
 function draw(gl, u_ModelMatrix, u_NormalMatrix) {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear color and depth buffer
+    gl.enable(gl.DEPTH_TEST);   // Enable depth testing
+    gl.depthFunc(gl.LEQUAL);    // Near things obscure far things
 
     for (let key in objects) {
 
@@ -264,12 +278,6 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix) {
         modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
         modelMatrix.scale(0.9, 0.9, 0.9); // Scale
 
-        if (key === "frontWindowLeftTrapezoid") {
-
-            // modelMatrix.rotate(90, 0, 1, 0);
-
-        }
-
         // Pass the model matrix to the uniform variable
         gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
 
@@ -278,6 +286,13 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix) {
         g_normalMatrix.transpose();
 
         gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        let uSampler = gl.getUniformLocation(gl.program, 'u_Sampler');
+
+        gl.uniform1i(uSampler, 0);
 
         // Draw the cube
         gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);

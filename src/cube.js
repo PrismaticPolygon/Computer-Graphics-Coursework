@@ -56,6 +56,8 @@ function createLeftTrapezoid(width, height, depth, x, y, z, color) {
         ...v3Normal, ...v4Normal, ...v5Normal,        // up
     ]);
 
+    const textureCoordinates = vertices;
+
     // Defines where to draw triangles between.
     const indices = new Uint8Array([
         0, 1, 2,               // down
@@ -69,7 +71,8 @@ function createLeftTrapezoid(width, height, depth, x, y, z, color) {
         vertices: vertices,
         colors: colors,
         normals: normals,
-        indices: indices
+        indices: indices,
+        textureCoordinates: textureCoordinates
     }
 
 }
@@ -126,6 +129,8 @@ function createRightTrapezoid(width, height, depth, x, y, z, color) {
         ...v3Normal, ...v4Normal, ...v5Normal,        // up
     ]);
 
+    const textureCoordinates = vertices;
+
     // Defines where to draw triangles between.
     const indices = new Uint8Array([
         0, 1, 2,               // down
@@ -139,14 +144,15 @@ function createRightTrapezoid(width, height, depth, x, y, z, color) {
         vertices: vertices,
         colors: colors,
         normals: normals,
-        indices: indices
+        indices: indices,
+        textureCoordinates: textureCoordinates
     }
 
 }
 
 function createCuboid(width, height, depth, x, y, z, color) {
 
-
+    // Does it depend on this size? Or the size of something else?
 
     // Create a cube
     //    v4----- v5
@@ -175,8 +181,6 @@ function createCuboid(width, height, depth, x, y, z, color) {
     let v6Normal = [1.0, 1.0, 1.0];
     let v7Normal = [-1.0, 1.0, 1.0];
 
-    // Let's instead map normals to vertices, eh?
-
     const vertices = new Float32Array([   // Coordinates
         ...v0, ...v1, ...v2, ...v3, // down
         ...v0, ...v4, ...v5, ...v1, // back
@@ -187,6 +191,12 @@ function createCuboid(width, height, depth, x, y, z, color) {
     ]);
 
     color = color ? color : [Math.random(), Math.random(), Math.random()];
+
+    // Do I make it wrap?
+    // Vertices should be fine, though, right?
+
+
+    const textureCoordinates = vertices;
 
     const colors = new Float32Array([    // Colors
         ...color, ...color, ...color, ...color,     // down
@@ -221,6 +231,7 @@ function createCuboid(width, height, depth, x, y, z, color) {
         vertices: vertices,
         colors: colors,
         normals: normals,
+        textureCoordinates: textureCoordinates,
         indices: indices
     }
 
