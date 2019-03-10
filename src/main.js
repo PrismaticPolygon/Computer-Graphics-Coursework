@@ -51,6 +51,10 @@ const VSHADER_SOURCE = `
 
 // This dude advocates a BufferInfo object, but why would I have different bufferInfos?
 
+// May as well make our house, right?
+// Steps should be easy, right?
+// And using this as basis, I should be able to make reality whatever I want.
+
 const FSHADER_SOURCE = `
 
     #ifdef GL_ES
@@ -145,6 +149,8 @@ function perspective(gl, canvas) {
 
 }
 
+// Sophie's approach makes a LOT more sense. For now, at least. Let's go to a new branch
+
 function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix) {
 
   switch (ev.keyCode) {
@@ -185,146 +191,255 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix) {
 
 // This dude's drawScene is absolutely beautiful.
 
-function drawScene(time) {
+function initObjectVertexBuffers(gl, object) {
 
-    time = time * 0.0001 + 5;
+    if (!initArrayBuffer(gl, 'a_Position', object.vertices, 3, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_Color', object.colors, 3, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_Normal', object.normals, 3, gl.FLOAT)) return -1;
 
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height); // Tell WebGL how to convert from clip space to pixels
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear the canvas and the depth buffer.
+    // Write the indices to the buffer object
+    let indexBuffer = gl.createBuffer();
 
-    let aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    let projectionMatrix = new Matrix4();
+    if (!indexBuffer) {
 
-    projectionMatrix.setPerspective(30, aspect, 1, 100);
+        console.log('Failed to create the buffer object');
+        return false;
 
-    let cameraMatrix = new Matrix4();
-    cameraMatrix.lookAt(0, 0, 15, 0, 0, -100, 0, 1, 0);
+    }
 
-    let viewMatrix = cameraMatrix.invert();
-    let viewProjectionMatrix = projectionMatrix.multiply(viewMatrix);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, object.indices, gl.STATIC_DRAW);
 
-    // He's abstracted it so cleverly I can't even see the interactions with webGL.
+    return object.indices.length;
 
-    // It's all just slightly different enough that I'm not QUITE sure.
-
-
-
-    // Then I just call draw with a bunch of objects, right?
-
-    // He has a bunch of utils, however. I'll steal them
 
 }
 
-function initAxesVertexBuffers(gl) {
+function initVertexBuffers(gl) {
+    // Create a cube
+    //    v6----- v5
+    //   /|      /|
+    //  v1------v0|
+    //  | |     | |
+    //  | |v7---|-|v4
+    //  |/      |/
+    //  v2------v3
 
-    var verticesColors = new Float32Array([
-        // Vertex coordinates and color (for axes)
-        -20.0,  0.0,   0.0,  1.0,  1.0,  1.0,  // (x,y,z), (r,g,b)
-        20.0,  0.0,   0.0,  1.0,  1.0,  1.0,
-        0.0,  20.0,   0.0,  1.0,  1.0,  1.0,
-        0.0, -20.0,   0.0,  1.0,  1.0,  1.0,
-        0.0,   0.0, -20.0,  1.0,  1.0,  1.0,
-        0.0,   0.0,  20.0,  1.0,  1.0,  1.0
-    ]);
-    var n = 6;
+    let structure = createCuboid(4, 2, 2, 1, 2, 1);
 
-    // This is a lot more complicated because it stores the colors separately.
+    // Okay. Now: I'm here again. I need to fill up this buffer.
+    // Or am I back at my previous approach? If I keep ending up there, it must be correct...
 
+    // let vertices = new Float32Array([   // Coordinates of Main Building
+    //     1.0, 2.0, 1.0,  -1.0, 2.0, 1.0,  -1.0,-2.0, 1.0,   1.0,-2.0, 1.0, // v0-v1-v2-v3 front
+    //     1.0, 2.0, 1.0,   1.0,-2.0, 1.0,   1.0,-2.0,-1.0,   1.0, 2.0,-1.0, // v0-v3-v4-v5 right
+    //     1.0, 2.0, 1.0,   1.0, 2.0,-1.0,  -1.0, 2.0,-1.0,  -1.0, 2.0, 1.0, // v0-v5-v6-v1 up
+    //     -1.0, 2.0, 1.0,  -1.0, 2.0,-1.0,  -1.0,-2.0,-1.0,  -1.0,-2.0, 1.0, // v1-v6-v7-v2 left
+    //     -1.0,-2.0,-1.0,   1.0,-2.0,-1.0,   1.0,-2.0, 1.0,  -1.0,-2.0, 1.0, // v7-v4-v3-v2 down
+    //     1.0,-2.0,-1.0,  -1.0,-2.0,-1.0,  -1.0, 2.0,-1.0,   1.0, 2.0,-1.0,  // v4-v7-v6-v5 back
+    //
+    //
+    //     // Coordinates of Bottom Window
+    //     0.5, 0.45, 1.0,  -0.5, 0.45, 1.0,  -0.5,-0.4, 1.0,   0.5,-0.4, 1.0, // v0-v1-v2-v3 front
+    //     0.5, 0.45, 1.0,   0.5,-0.4, 1.0,   0.5,-0.4, 1.05,   0.5, 0.45, 1.05, // v0-v3-v4-v5 right
+    //     0.5, 0.45, 1.0,   0.5, 0.45, 1.05,  -0.5, 0.45, 1.05,  -0.5, 0.45, 1.0, // v0-v5-v6-v1 up
+    //     -0.5, 0.45, 1.0,  -0.5, 0.45, 1.05,  -0.5,-0.4, 1.05,  -0.5,-0.4, 1.0, // v1-v6-v7-v2 left
+    //     -0.5,-0.4, 1.05,   0.5,-0.4, 1.05,   0.5,-0.4, 1.0,  -0.5,-0.4, 1.0, // v7-v4-v3-v2 down
+    //     0.5,-0.4, 1.05,  -0.5,-0.4, 1.05,  -0.5, 0.45, 1.05,   0.5, 0.45, 1.05,  // v4-v7-v6-v5 back
+    //
+    //     // Coordinates of Top Window
+    //     0.5, 1.65, 1.0,  -0.5, 1.65, 1.0,  -0.5, 0.8, 1.0,   0.5, 0.8, 1.0, // v0-v1-v2-v3 front
+    //     0.5, 1.65, 1.0,   0.5, 0.8, 1.0,   0.5, 0.8, 1.05,   0.5, 1.65, 1.05, // v0-v3-v4-v5 right
+    //     0.5, 1.65, 1.0,   0.5, 1.65, 1.05,  -0.5, 1.65, 1.05,  -0.5, 1.65, 1.0, // v0-v5-v6-v1 up
+    //     -0.5, 1.65, 1.0,  -0.5, 1.65, 1.05,  -0.5, 0.8, 1.05,  -0.5, 0.8, 1.0, // v1-v6-v7-v2 left
+    //     -0.5, 0.8, 1.05,   0.5, 0.8, 1.05,   0.5, 0.8, 1.0,  -0.5, 0.8, 1.0, // v7-v4-v3-v2 down
+    //     0.5, 0.8, 1.05,  -0.5, 0.8, 1.05,  -0.5, 1.65, 1.05,   0.5, 1.65, 1.05,  // v4-v7-v6-v5 back
+    //
+    //     // But yeah: this will become intolerable. Far better to build a primitive library. Argh!
+    //
+    //     // Coordinates of Door
+    //     -0.5,-0.80, 1.0,  -0.95, -0.80, 1.0,  -0.95,-2.0, 1.1,   -0.5,-2.0, 1.1, // v0-v1-v2-v3 front
+    //     -0.5,-0.80, 1.0,   -0.5,-2.0, 1.0,   -0.5,-2.0, 1.05,   -0.5,-0.80, 1.05, // v0-v3-v4-v5 right
+    //     -0.5,-0.80, 1.0,   -0.5,-0.80, 1.05,  -0.95,-0.80, 1.05,  -0.95, -0.80, 1.0, // v0-v5-v6-v1 up
+    //     -0.95, -0.80, 1.0,  -0.95,-0.80, 1.05, -0.95,-2.0, 1.05,  -0.95,-2.0, 1.0, // v1-v6-v7-v2 left
+    //     -0.95,-2.0, 1.05,   -0.5,-2.0, 1.05,   -0.5,-2.0, 1.0,  -0.95,-2.0, 1.0, // v7-v4-v3-v2 down
+    //     -0.5,-2.0, 1.05,  -0.95,-2.0, 1.05,  -0.95,-0.80, 1.05,   -0.5,-0.80, 1.05  // v4-v7-v6-v5 back
+    //
+    // ]);
+    //
+    //
+    // let colors = new Float32Array([    // Colors of Main Building
+    //     0.65, 0.65, 0.65,   0.65, 0.65, 0.65,   0.65, 0.65, 0.65,  0.65, 0.65, 0.65,     // v0-v1-v2-v3 front
+    //     0.65, 0.65, 0.65,   0.65, 0.65, 0.65,   0.65, 0.65, 0.65,  0.65, 0.65, 0.65,     // v0-v3-v4-v5 right
+    //     0.65, 0.65, 0.65,   0.65, 0.65, 0.65,   0.65, 0.65, 0.65,  0.65, 0.65, 0.65,     // v0-v5-v6-v1 up
+    //     0.65, 0.65, 0.65,   0.65, 0.65, 0.65,   0.65, 0.65, 0.65,  0.65, 0.65, 0.65,     // v1-v6-v7-v2 left
+    //     0.65, 0.65, 0.65,   0.65, 0.65, 0.65,   0.65, 0.65, 0.65,  0.65, 0.65, 0.65,     // v7-v4-v3-v2 down
+    //     0.65, 0.65, 0.65,   0.65, 0.65, 0.65,   0.65, 0.65, 0.65,  0.65, 0.65, 0.65,　    // v4-v7-v6-v5 back
+    //
+    //     //Bottom Window
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v0-v1-v2-v3 front
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v0-v3-v4-v5 right
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v0-v5-v6-v1 up
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v1-v6-v7-v2 left
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v7-v4-v3-v2 down
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,　    // v4-v7-v6-v5 back
+    //
+    //     //Top Window
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v0-v1-v2-v3 front
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v0-v3-v4-v5 right
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v0-v5-v6-v1 up
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v1-v6-v7-v2 left
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,     // v7-v4-v3-v2 down
+    //     0.9, 0.97, 1.0,   0.9, 0.97, 1.0,   0.9, 0.97, 1.0,  0.9, 0.97, 1.0,　    // v4-v7-v6-v5 back
+    //
+    //     //Door
+    //     0.7, 0.35, 0.0,   0.7, 0.35, 0.0,   0.7, 0.35, 0.0,  0.7, 0.35, 0.0,     // v0-v1-v2-v3 front
+    //     0.7, 0.35, 0.0,   0.7, 0.35, 0.0,   0.7, 0.35, 0.0,  0.7, 0.35, 0.0,     // v0-v3-v4-v5 right
+    //     0.7, 0.35, 0.0,   0.7, 0.35, 0.0,   0.7, 0.35, 0.0,  0.7, 0.35, 0.0,     // v0-v5-v6-v1 up
+    //     0.7, 0.35, 0.0,   0.7, 0.35, 0.0,   0.7, 0.35, 0.0,  0.7, 0.35, 0.0,     // v1-v6-v7-v2 left
+    //     0.7, 0.35, 0.0,   0.7, 0.35, 0.0,   0.7, 0.35, 0.0,  0.7, 0.35, 0.0,     // v7-v4-v3-v2 down
+    //     0.7, 0.35, 0.0,   0.7, 0.35, 0.0,   0.7, 0.35, 0.0,  0.7, 0.35, 0.0　    // v4-v7-v6-v5 back
+    // ]);
+    //
+    //
+    // let normals = new Float32Array([    // Normal
+    //     0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
+    //     1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
+    //     0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
+    //     -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  // v1-v6-v7-v2 left
+    //     0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,  // v7-v4-v3-v2 down
+    //     0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   // v4-v7-v6-v5 back
+    //
+    //     0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
+    //     1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
+    //     0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
+    //     -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  // v1-v6-v7-v2 left
+    //     0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,  // v7-v4-v3-v2 down
+    //     0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   // v4-v7-v6-v5 back
+    //
+    //     0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
+    //     1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
+    //     0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
+    //     -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  // v1-v6-v7-v2 left
+    //     0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,  // v7-v4-v3-v2 down
+    //     0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   // v4-v7-v6-v5 back
+    //
+    //     0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
+    //     1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
+    //     0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
+    //     -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  // v1-v6-v7-v2 left
+    //     0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,  // v7-v4-v3-v2 down
+    //     0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0   // v4-v7-v6-v5 back
+    // ]);
+    //
+    //
+    // // Indices of the vertices
+    // let indices = new Uint8Array([
+    //     0, 1, 2,   0, 2, 3,    // front
+    //     4, 5, 6,   4, 6, 7,    // right
+    //     8, 9,10,   8,10,11,    // up
+    //     12,13,14,  12,14,15,    // left
+    //     16,17,18,  16,18,19,    // down
+    //     20,21,22,  20,22,23,    // back
+    //
+    //     24, 25, 26,   24, 26, 27,    // front
+    //     28, 29, 30,   28, 30, 31,    // right
+    //     32, 33, 34,   32, 34, 35,    // up
+    //     36, 37, 38,   36, 38, 39,    // left
+    //     40, 41, 42,   40, 42, 43,    // down
+    //     44, 45, 46,   44, 46, 47,    // back
+    //
+    //     48, 49, 50,   48, 50, 51,    // front
+    //     52, 53, 54,   52, 54, 55,    // right
+    //     56, 57, 58,   56, 58, 59,    // up
+    //     60, 61, 62,   60, 62, 63,    // left
+    //     64, 65, 66,   64, 66, 67,    // down
+    //     68, 69, 70,   68, 70, 71,    // back
+    //
+    //     72, 73, 74,   72, 74, 75,    // front
+    //     76, 77, 78,   76, 78, 79,    // right
+    //     80, 81, 82,   80, 82, 83,    // up
+    //     84, 85, 86,   84, 86, 87,    // left
+    //     88, 89, 90,   88, 90, 91,    // down
+    //     92, 93, 94,   92, 94, 95,    // back
+    //
+    // ]);
+
+
+    // Write the vertex property to buffers (coordinates, colors and normals)
+    if (!initArrayBuffer(gl, 'a_Position', structure.vertices, 3, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_Color', structure.colors, 3, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_Normal', structure.normals, 3, gl.FLOAT)) return -1;
+
+    // Write the indices to the buffer object
+    let indexBuffer = gl.createBuffer();
+
+    if (!indexBuffer) {
+
+        console.log('Failed to create the buffer object');
+        return false;
+
+    }
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, structure.indices, gl.STATIC_DRAW);
+
+    return structure.indices.length;
+}
+
+function initArrayBuffer (gl, attribute, data, num, type) {
     // Create a buffer object
-    var vertexColorBuffer = gl.createBuffer();
-    if (!vertexColorBuffer) {
+    var buffer = gl.createBuffer();
+    if (!buffer) {
         console.log('Failed to create the buffer object');
         return false;
     }
-
-    // Bind the buffer object to target
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
-
-    var FSIZE = verticesColors.BYTES_PER_ELEMENT;
-    //Get the storage location of a_Position, assign and enable buffer
-    var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
-    if (a_Position < 0) {
-        console.log('Failed to get the storage location of a_Position');
-        return -1;
+    // Write date into the buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    // Assign the buffer object to the attribute variable
+    var a_attribute = gl.getAttribLocation(gl.program, attribute);
+    if (a_attribute < 0) {
+        console.log('Failed to get the storage location of ' + attribute);
+        return false;
     }
-    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FSIZE * 6, 0);
-    gl.enableVertexAttribArray(a_Position);  // Enable the assignment of the buffer object
+    gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
+    // Enable the assignment of the buffer object to the attribute variable
+    gl.enableVertexAttribArray(a_attribute);
 
-    // Get the storage location of a_Position, assign buffer and enable
-    var a_Color = gl.getAttribLocation(gl.program, 'a_Color');
-    if(a_Color < 0) {
-        console.log('Failed to get the storage location of a_Color');
-        return -1;
-    }
-    gl.vertexAttribPointer(a_Color, 3, gl.FLOAT, false, FSIZE * 6, FSIZE * 3);
-    gl.enableVertexAttribArray(a_Color);  // Enable the assignment of the buffer object
-
-    // Unbind the buffer object
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    return n;
+    return true;
+
 }
 
-function initVertexBuffers(gl, object) {
+// There will be a lot of repetition.
+// It'll really be collections of objects... but not that much. Charlie is right: this is going to take a while.
 
-  // Write the vertex property to buffers (coordinates, colors and normals)
-  if (!initArrayBuffer(gl, 'a_Position', object.vertices, 3, gl.FLOAT)) return -1;
-  if (!initArrayBuffer(gl, 'a_Color', object.colors, 3, gl.FLOAT)) return -1;
+let objects = {
+    structure: createCuboid(4, 2, 2, 1, 2, 1),
+    frontDoor: createCuboid(1.2, 0.6, 0.005, -0.3, -0.7, 1.005),
+    frontStep: createCuboid(0.2, 0.6, 0.2, -0.3, -1.8, 1.205)
+};
 
-  if (object.normals) {
+// Front window will be hard... Draw triangle, I guess.
 
-      if (!initArrayBuffer(gl, 'a_Normal', object.normals, 3, gl.FLOAT)) return -1;
-
-  }
-
-  // Cause no normals, I guess.
-
-  // Write the indices to the buffer object
-  let indexBuffer = gl.createBuffer();
-
-  if (!indexBuffer) {
-    console.log('Failed to create the buffer object');
-    return false;
-  }
-
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, object.indices, gl.STATIC_DRAW);
-
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null); //Unbind the buffer
-
-  return object.indices.length;
-}
+//
+// let structure = createCuboid(4, 2, 2, 1, 2, 1);
+// let door = createCuboid(1.2, 0.6, 0.005, -0.3, -0.7, 1.005);
 
 function draw(gl, u_ModelMatrix, u_NormalMatrix) {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear color and depth buffer
 
-    {
+    // If these are all the same object, can I do the same stuff to them?
 
-        const axes = createAxes();
+    for (let key in objects) {
 
-        let n = initVertexBuffers(gl, axes);
+        let object = objects[key];
+        let n = initObjectVertexBuffers(gl, object);
 
-        if (n > 0) {
-
-            modelMatrix.setTranslate(0, 0, 0);
-            gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-            gl.drawArrays(gl.LINES, 0, n);
-
-        } else {
-
-            console.log("Error creating axes object");
-
-        }
-
-    }
-
-    {
-
-        const cube = createCube(1.0, 0);
-        let n = initVertexBuffers(gl, cube);
-
+        modelMatrix.setTranslate(0, 0, 0);
         modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
         modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
         modelMatrix.scale(1.5, 1.5, 1.5); // Scale
@@ -335,6 +450,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix) {
         // Calculate the normal transformation matrix and pass it to u_NormalMatrix
         g_normalMatrix.setInverseOf(modelMatrix);
         g_normalMatrix.transpose();
+
         gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
 
         // Draw the cube
@@ -342,24 +458,53 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix) {
 
     }
 
-
-  // The axes are rotating as welL!
-    // SO. For each we're going to load up our buffers, then draw the object.
-    // Then, we're going to apply the relate transformations.
-
-  // Naturally, it does. Shouldn't be a hard fix though... Though I suspect that initVertexBuffers will get confused.
-    // for now, let's iterate.
-
-    // And obviously this matrix doesn't translate it. Though, then again, it shouldn't have.
-
-  //
-    // We're running into buffer issues. Perhaps initVertexBuffer overwrites the current buffer?
-    // Nigga has a single vertex array for his triangles which, to be fair, makes sense.
-
-    // But wait... Freddie had too different objects, the axes and the square. Let's attempt to split THOSE into different files.
-    // And this is called everytime that we have a key-down event, right?
-    // I could, and probably should, just do what J has done, and in this loop
-    // call various draw methods, passing in the relevant parameters.
+    //
+    //
+    // {
+    //
+    //     let n = initObjectVertexBuffers(gl, structure);
+    //
+    //     modelMatrix.setTranslate(0, 0, 0);
+    //     modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
+    //     modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
+    //     modelMatrix.scale(1.5, 1.5, 1.5); // Scale
+    //
+    //     // Pass the model matrix to the uniform variable
+    //     gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+    //
+    //     // Calculate the normal transformation matrix and pass it to u_NormalMatrix
+    //     g_normalMatrix.setInverseOf(modelMatrix);
+    //     g_normalMatrix.transpose();
+    //
+    //     gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
+    //
+    //     // Draw the cube
+    //     gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
+    //
+    // }
+    //
+    // {
+    //
+    //     let n = initObjectVertexBuffers(gl, door);
+    //
+    //     modelMatrix.setTranslate(0, 0, 0);
+    //     modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
+    //     modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
+    //     modelMatrix.scale(1.5, 1.5, 1.5); // Scale
+    //
+    //     // Pass the model matrix to the uniform variable
+    //     gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+    //
+    //     // Calculate the normal transformation matrix and pass it to u_NormalMatrix
+    //     g_normalMatrix.setInverseOf(modelMatrix);
+    //     g_normalMatrix.transpose();
+    //
+    //     gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
+    //
+    //     // Draw the cube
+    //     gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
+    //
+    // }
 
 
 }
