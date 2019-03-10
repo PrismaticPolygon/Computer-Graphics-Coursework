@@ -215,25 +215,38 @@ function initObjectVertexBuffers(gl, object) {
 
 }
 
-// A story is normally 3m tall. On this scale, 1 = 1m.
+// It'll be off-centre when I translate it!
+// So Blender could output the model. So, what's then the hard part? I don't have the time to
+// invest looking into that.
+const WHITE = [1.0, 1.0, 1.0];
+const RED = [1.0, 0.0, 0.0];
+
 
 let objects = {
 
-    structure: createCuboid(2, 6, 2, -1, -2, -1),
-    frontDoor: createCuboid(0.6, 1.2, 0.005, -0.9, -1.8, 1.005),
-    frontStep: createCuboid(0.6, 0.2, 0.2, -0.9, -2, 1.005),
+    structure: createCuboid(4, 6, 4, -2, -3, -2),
 
-    frontWindowLeft: createLeftTrapezoid(0.2, 0.9, 0.2, -0.15, -1.6, 1),
-    frontWindowRight: createRightTrapezoid(0.2, 0.9, 0.2, 0.65, -1.6, 1),
-    frontWindowCentre: createCuboid(0.6, 0.9, 0.2, 0.05, -1.6, 1),
+    frontDoorFrame: createCuboid(0.8, 2.55, 0.001, -1.8, -3, 2, WHITE),
+    frontDoor: createCuboid(0.7, 1.8, 0.005, -1.75, -2.75, 2, RED),
+    frontDoorWindow: createCuboid(0.7, 0.4, 0.005, -1.75, -0.9, 2),
+    frontDoorLintel: createCuboid(1, 0.2, 0.005, -1.9, -0.45, 2, WHITE),
+    frontStep: createCuboid(0.7, 0.2, 0.3, -1.75, -3, 2),
 
-    frontWindowLeftWindowSill: createLeftTrapezoid(0.25, 0.1, 0.25, -0.2, -1.7, 1),
-    frontWindowRightWindowSill: createRightTrapezoid(0.25, 0.1, 0.25, 0.65, -1.7, 1),
-    frontWindowCentreWindowSill: createCuboid(0.6, 0.1, 0.25, 0.05, -1.7, 1),
+    frontWindowTopLeft: createLeftTrapezoid(0.5, 0.2, 0.5, -0.6, -0.45, 2, WHITE),
+    frontWindowTopCentre: createCuboid(1.2, 0.2, 0.5, -0.1, -0.45, 2, WHITE),
+    frontWindowTopRight: createRightTrapezoid(0.5, 0.2, 0.5, 1.1, -0.45, 2, WHITE),
 
-    frontWindowBottomLeft: createLeftTrapezoid(0.2, 0.3, 0.2, -0.15, -2, 1),
-    frontWindowBottomRight: createRightTrapezoid(0.2, 0.3, 0.2, 0.65, -2, 1),
-    frontWindowBottomCentre: createCuboid(0.6, 0.3, 0.2, 0.05, -2, 1),
+    frontWindowLeft: createLeftTrapezoid(0.4, 1.65, 0.4, -0.5, -2.1, 2),
+    frontWindowCentre: createCuboid(1.2, 1.65, 0.4, -0.1, -2.1, 2),
+    frontWindowRight: createRightTrapezoid(0.4, 1.65, 0.4, 1.1, -2.1, 2),
+
+    frontWindowLeftWindowSill: createLeftTrapezoid(0.5, 0.2, 0.5, -0.6, -2.3, 2, WHITE),
+    frontWindowCentreWindowSill: createCuboid(1.2, 0.2, 0.5, -0.1, -2.3, 2, WHITE),
+    frontWindowRightWindowSill: createRightTrapezoid(0.5, 0.2, 0.5, 1.1, -2.3, 2, WHITE),
+
+    frontWindowBottomLeft: createLeftTrapezoid(0.4, 0.7, 0.4, -0.5, -3, 2),
+    frontWindowBottomCentre: createCuboid(1.2, 0.7, 0.4, -0.1, -3, 2),
+    frontWindowBottomRight: createRightTrapezoid(0.4, 0.7, 0.4, 1.1, -3, 2),
 
 };
 
@@ -249,7 +262,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix) {
         modelMatrix.setTranslate(0, 0, 0);
         modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
         modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
-        modelMatrix.scale(1.5, 1.5, 1.5); // Scale
+        modelMatrix.scale(0.9, 0.9, 0.9); // Scale
 
         if (key === "frontWindowLeftTrapezoid") {
 

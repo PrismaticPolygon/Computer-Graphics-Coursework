@@ -1,4 +1,4 @@
-function createLeftTrapezoid(width, height, depth, x, y, z) {
+function createLeftTrapezoid(width, height, depth, x, y, z, color) {
 
     // Create a trapezoid
     //    v3----- v4
@@ -33,7 +33,7 @@ function createLeftTrapezoid(width, height, depth, x, y, z) {
         ...v3, ...v4, ...v5,        // up
     ]);
 
-    let color = [Math.random(), Math.random(), Math.random()];
+    color = color ? color : [Math.random(), Math.random(), Math.random()];
 
     const colors = new Float32Array([    // Colors
         ...color, ...color, ...color,
@@ -74,7 +74,7 @@ function createLeftTrapezoid(width, height, depth, x, y, z) {
 
 }
 
-function createRightTrapezoid(width, height, depth, x, y, z) {
+function createRightTrapezoid(width, height, depth, x, y, z, color) {
 
     // Create a trapezoid
     //    v3----- v4
@@ -108,7 +108,7 @@ function createRightTrapezoid(width, height, depth, x, y, z) {
         ...v3, ...v4, ...v5,        // up
     ]);
 
-    let color = [Math.random(), Math.random(), Math.random()];
+    color = color ? color : [Math.random(), Math.random(), Math.random()];
 
     const colors = new Float32Array([    // Colors
         ...color, ...color, ...color,
@@ -144,7 +144,9 @@ function createRightTrapezoid(width, height, depth, x, y, z) {
 
 }
 
-function createCuboid(width, height, depth, x, y, z) {
+function createCuboid(width, height, depth, x, y, z, color) {
+
+
 
     // Create a cube
     //    v4----- v5
@@ -184,7 +186,7 @@ function createCuboid(width, height, depth, x, y, z) {
         ...v4, ...v5, ...v6, ...v7  // top
     ]);
 
-    let color = [Math.random(), Math.random(), Math.random()];
+    color = color ? color : [Math.random(), Math.random(), Math.random()];
 
     const colors = new Float32Array([    // Colors
         ...color, ...color, ...color, ...color,     // down
