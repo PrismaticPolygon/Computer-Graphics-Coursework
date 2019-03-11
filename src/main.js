@@ -51,19 +51,21 @@ const FSHADER_SOURCE = `
         vec3 lightDirection = normalize(u_LightPosition - v_Position);
         float nDotL = max(dot(lightDirection, normal), 0.0);
         vec3 diffuse;
+        vec3 ambient;
     
         if (u_UseTextures) {
         
             vec4 TexColor = texture2D(u_Sampler, v_TexCoords);
             diffuse = u_LightColor * TexColor.rgb * nDotL * 1.2;
+            ambient = u_AmbientLight * TexColor.rgb * nDotL * 1.2;
         
         } else {
        
             diffuse = u_LightColor * v_Color.rgb * nDotL;
+            ambient = u_AmbientLight * v_Color.rgb;
         
         } 
     
-        vec3 ambient = u_AmbientLight * v_Color.rgb;
         gl_FragColor = vec4(diffuse + ambient, v_Color.a);
         
     }
@@ -316,6 +318,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_S
         mvpMatrix.setPerspective(30, 1, 1, 100);
 
         // It's not lookAt. We want to move the camera itself.
+        // And we're still getting weird tinges of color.
 
         mvpMatrix.lookAt(g_eyeX, g_eyeY, g_eyeZ, 0, 0, 0, 0, 1, 0);
         mvpMatrix.multiply(modelMatrix);
@@ -327,15 +330,11 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_S
         gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
         gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
-        // gl.activeTexture(gl.TEXTURE0);
-        // gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
 
-        // gl.uniform1i(u_Sampler, 1);
-        // gl.uniform1i(u_UseTextures, 1);
+        gl.uniform1i(u_UseTextures, 1);
 
-        // Wow. Using textures fucks everything!
-
-        // Draw the cube
         gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
 
     }
