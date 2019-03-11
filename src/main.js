@@ -263,6 +263,11 @@ let objects = {
     frontWindowBottomCentre: createCuboid(1.2, 0.7, 0.4, -0.1, -3, 2),
     frontWindowBottomRight: createRightTrapezoid(0.4, 0.7, 0.4, 1.1, -3, 2),
 
+    nathanielWindowFrame: createCuboid(1.2, 1.6, 0.005, -0.1, 1.1, 2, WHITE),
+    nathanielWindowTop: createCuboid(1.2, 0.3, 0.1, -0.1, 2.65, 2, WHITE),
+    nathanielWindow: createCuboid(1.1, 1.4, 0.005, -0.05, 1.2, 2),
+    nathanielWindowBottom: createCuboid(1.2, 0.3, 0.1, -0.1, 0.8, 2, WHITE),
+
 };
 
 function draw(gl, u_ModelMatrix, u_NormalMatrix) {
