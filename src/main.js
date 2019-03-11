@@ -74,10 +74,13 @@ const FSHADER_SOURCE = `
     
     void main() {
     
-        gl_FragColor = texture2D(u_Sampler, v_TextureCoord);
+        // gl_FragColor = texture2D(u_Sampler, v_TextureCoord);
+        gl_FragColor = v_Color;
         
     }
 `;
+
+// It's texture or nothing now, unless I come up with two different shaders.
 
 var modelMatrix = new Matrix4(); // The model matrix
 var g_normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
