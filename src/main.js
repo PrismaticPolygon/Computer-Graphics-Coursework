@@ -75,12 +75,16 @@ const FSHADER_SOURCE = `
 
 let modelMatrix = new Matrix4(); // The model matrix
 let normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
-let modelViewPerspectiveMatrix = new Matrix4();
+let mvpMatrix = new Matrix4();
 let texture;
 
 let ANGLE_STEP = 3.0;  // The increments of rotation angle (degrees)
 let g_xAngle = 0.0;    // The rotation x angle (degrees)
 let g_yAngle = 0.0;    // The rotation y angle (degrees)
+let EYE_STEP = 0.2;
+let g_eyeX = 12;
+let g_eyeY = 12;
+let g_eyeZ = 12;
 
 function main() {
 
@@ -96,8 +100,6 @@ function main() {
     gl.clearColor(1.0, 1.0, 1.0, 1.0); // Set clear color
     gl.enable(gl.DEPTH_TEST); // Enable hidden surface removal
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);  // Clear color and depth buffer
-
-    // Yeah. It's only nice because I've split it all up.
 
     // Get the storage locations of uniform attributes
     let u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
@@ -119,15 +121,15 @@ function main() {
     // Perspective
     {
 
-        modelViewPerspectiveMatrix.setPerspective(30, canvas.clientWidth / canvas.clientHeight, 1, 100);
-        modelViewPerspectiveMatrix.lookAt(6, 6, 14, 0, 0, 0, 0, 1, 0);
-        modelViewPerspectiveMatrix.multiply(modelMatrix);
+        mvpMatrix.setPerspective(30, canvas.clientWidth / canvas.clientHeight, 1, 100);
+        mvpMatrix.lookAt(g_eyeX, g_eyeY, g_eyeZ, 0, 0, 0, 0, 1, 0);
+        mvpMatrix.multiply(modelMatrix);
 
         normalMatrix.setInverseOf(modelMatrix);
         normalMatrix.transpose();
 
         gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-        gl.uniformMatrix4fv(u_MvpMatrix, false, modelViewPerspectiveMatrix.elements);
+        gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
         gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
     }
@@ -135,42 +137,73 @@ function main() {
     let u_UseTextures = gl.getUniformLocation(gl.program, 'u_UseTextures');
     let u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
 
+    document.onkeydown = function(ev){ keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix,
+        u_UseTextures, u_Sampler); };
 
-    document.onkeydown = function(ev){ keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler); };
-
-    draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler);
+    draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler);
 
 }
 
-function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
+function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler) {
 
-  switch (ev.keyCode) {
+    switch (ev.keyCode) {
 
     case 40: // Up arrow key -> the positive rotation of arm1 around the y-axis
 
-      g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
-      break;
+        g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
+        break;
 
     case 38: // Down arrow key -> the negative rotation of arm1 around the y-axis
 
-      g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
-      break;
+        g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
+        break;
 
     case 39: // Right arrow key -> the positive rotation of arm1 around the y-axis
 
-      g_yAngle = (g_yAngle + ANGLE_STEP) % 360;
-      break;
+        g_yAngle = (g_yAngle + ANGLE_STEP) % 360;
+        break;
 
     case 37: // Left arrow key -> the negative rotation of arm1 around the y-axis
 
-      g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
-      break;
+        g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
+        break;
+
+    case 87:  // w key -> move the eye forward
+
+        g_eyeZ += EYE_STEP;
+        break;
+
+    case 65:  // a key -> move the eye left
+
+        g_eyeX -= EYE_STEP;
+        break;
+
+    case 83:  // s key -> move the eye backwards
+
+        g_eyeZ -= EYE_STEP;
+        break;
+
+    case 68:  // d key -> move the eye left
+
+        g_eyeX += EYE_STEP;
+        break;
+
+    case 16:  // shift key -> move the eye down
+
+        g_eyeY -= EYE_STEP;
+        break;
+
+    case 32:  // space key -> move the eye up
+
+        g_eyeY += EYE_STEP;
+        break;
 
     default: return; // Skip drawing at no effective action
+
   }
 
   // Draw the scene
-  draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler);
+  draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler);
 
 }
 
@@ -227,29 +260,24 @@ let objects = {
     frontWindowBottomCentre: createCuboid(1.2, 0.7, 0.4, -0.1, -3, 2),
     frontWindowBottomRight: createRightTrapezoid(0.4, 0.7, 0.4, 1.1, -3, 2),
 
-    frontWindowTopSlopeCentre: createRightTrapezoid(0.95, 1.25, 0.3, 1, 1, 2),
+    frontWindowTopSlopeCentre: createRightTrapezoid(0.95, 1.2, 0.5, 1, 1, 2),
 
     nathanielWindowFrame: createCuboid(1.2, 1.6, 0.005, -0.1, 1.1, 2, WHITE),
-    nathanielWindowTop: createCuboid(1.2, 0.3, 0.1, -0.1, 2.65, 2, WHITE),
+    nathanielWindowTop: createCuboid(1.2, 0.3, 0.1, -0.1, 2.65, 2.0001, WHITE),
     nathanielWindow: createCuboid(1.1, 1.4, 0.005, -0.05, 1.2, 2),
     nathanielWindowBottom: createCuboid(1.2, 0.3, 0.1, -0.1, 0.8, 2, WHITE),
 
     frontRoof: createRightTrapezoid(1, 4, 2, 0, 0, 0, WHITE),
-    backRoof: createLeftTrapezoid(2, 4, 1, 0, 0, 0, WHITE)
-
-    // Add a roof! Fool of a Took. Just create it at the origin then do everything properly.
+    backRoof: createLeftTrapezoid(1, 4, 2, 0, 0, 0, WHITE)
 
 };
 
 
-function draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
+function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler) {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear color and depth buffer
     gl.enable(gl.DEPTH_TEST);   // Enable depth testing
     gl.depthFunc(gl.LEQUAL);    // Near things obscure far things
-
-    // Shouldn't call these multiple times, I suspect!
-    // It's rotated around the origin. How on earth can I figure out where it's supposed to gO?
 
     for (let key in objects) {
 
@@ -277,21 +305,26 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
 
         if (key === "backRoof") {
 
-            modelMatrix.translate(-2, 3, -2);
-            modelMatrix.rotate(0, 0, 0, 1);
-
+            modelMatrix.translate(2, 4, 0);
+            modelMatrix.rotate(180, 0, 1, 0);
+            modelMatrix.rotate(-90, 0, 0, 1);
 
         }
 
+        // I have to reset the perspective.
 
+        mvpMatrix.setPerspective(30, 1, 1, 100);
 
-        // Pass the model matrix to the uniform variable
-        gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+        // It's not lookAt. We want to move the camera itself.
 
-        // Calculate the normal transformation matrix and pass it to u_NormalMatrix
+        mvpMatrix.lookAt(g_eyeX, g_eyeY, g_eyeZ, 0, 0, 0, 0, 1, 0);
+        mvpMatrix.multiply(modelMatrix);
+
         normalMatrix.setInverseOf(modelMatrix);
         normalMatrix.transpose();
 
+        gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+        gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
         gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
         // gl.activeTexture(gl.TEXTURE0);

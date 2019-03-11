@@ -37,6 +37,8 @@ function createLeftTrapezoid(width, height, depth, x, y, z, color) {
 
     let n_x = Math.sin(theta), n_z = Math.cos(theta);
 
+    // These still aren't right.
+
     const normals = new Float32Array([
         0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,                  // down
         0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0, // back
