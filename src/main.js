@@ -6,10 +6,9 @@ const VSHADER_SOURCE = `
     
     attribute vec2 a_TexCoords;
     
+    uniform mat4 u_MvpMatrix;
     uniform mat4 u_ModelMatrix;
     uniform mat4 u_NormalMatrix;
-    uniform mat4 u_ViewMatrix;
-    uniform mat4 u_ProjMatrix;
     
     varying vec4 v_Color;
     
@@ -20,7 +19,7 @@ const VSHADER_SOURCE = `
     
     void main() {
     
-        gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
+        gl_Position = u_MvpMatrix * a_Position;
        
         v_Position = vec3(u_ModelMatrix * a_Position);
         v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
@@ -35,16 +34,16 @@ const FSHADER_SOURCE = `
 
     precision mediump float;
     
-    varying vec4 v_Color;
-    varying vec3 v_Normal;
-    varying vec3 v_Position;
-    varying vec2 v_TexCoords;
-    
     uniform bool u_UseTextures;
     uniform vec3 u_LightColor;
     uniform vec3 u_LightPosition;
     uniform vec3 u_AmbientLight;
     uniform sampler2D u_Sampler; 
+    
+    varying vec4 v_Color;
+    varying vec3 v_Normal;
+    varying vec3 v_Position;
+    varying vec2 v_TexCoords;
     
     void main() {
     
@@ -72,22 +71,16 @@ const FSHADER_SOURCE = `
 
 // Anything that requires syncing CPU and GPU sides is very slow: avoid doing so in main rendering loop.
 // Also include WebGL getter calls. Fewer, larger, draw operations will improve performance.
-// Do as much as possibel in the vertex shader.
+// Do as much as possible in the vertex shader.
 
-// It's texture or nothing now, unless I come up with two different shaders.
-
-var modelMatrix = new Matrix4(); // The model matrix
-var g_normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
-
-var ANGLE_STEP = 3.0;  // The increments of rotation angle (degrees)
-var g_xAngle = 0.0;    // The rotation x angle (degrees)
-var g_yAngle = 0.0;    // The rotation y angle (degrees)
-
-// Given a program, this generates stuff.
-// This stupid-ass nigga has his shaders in index.html. This is too low-level, there's TOO much flexibility.
-// For now: I'm just trying to draw multiple objects, yo!
-
+let modelMatrix = new Matrix4(); // The model matrix
+let normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
+let modelViewPerspectiveMatrix = new Matrix4();
 let texture;
+
+let ANGLE_STEP = 3.0;  // The increments of rotation angle (degrees)
+let g_xAngle = 0.0;    // The rotation x angle (degrees)
+let g_yAngle = 0.0;    // The rotation y angle (degrees)
 
 function main() {
 
@@ -104,61 +97,50 @@ function main() {
     gl.enable(gl.DEPTH_TEST); // Enable hidden surface removal
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);  // Clear color and depth buffer
 
+    // Yeah. It's only nice because I've split it all up.
+
     // Get the storage locations of uniform attributes
     let u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
     let u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
+    let u_MvpMatrix = gl.getUniformLocation(gl.program, "u_MvpMatrix");
+    let u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
+    let u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+    let u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
+
+    // Lighting
+    {
+
+        gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
+        gl.uniform3f(u_LightPosition, 2.3, 4.0, 3.5);
+        gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+
+    }
+
+    // Perspective
+    {
+
+        modelViewPerspectiveMatrix.setPerspective(30, canvas.clientWidth / canvas.clientHeight, 1, 100);
+        modelViewPerspectiveMatrix.lookAt(6, 6, 14, 0, 0, 0, 0, 1, 0);
+        modelViewPerspectiveMatrix.multiply(modelMatrix);
+
+        normalMatrix.setInverseOf(modelMatrix);
+        normalMatrix.transpose();
+
+        gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+        gl.uniformMatrix4fv(u_MvpMatrix, false, modelViewPerspectiveMatrix.elements);
+        gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
+
+    }
+
     let u_UseTextures = gl.getUniformLocation(gl.program, 'u_UseTextures');
     let u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
 
-    lighting(gl);
-    perspective(gl, canvas);
 
-    document.onkeydown = function(ev){ keydown(ev, gl, u_ModelMatrix, u_NormalMatrix), u_UseTextures, u_Sampler; };
+    document.onkeydown = function(ev){ keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler); };
 
     draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler);
 
 }
-
-function lighting(gl) {
-
-    console.log("Calling lighting");
-
-    let u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-    // let u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
-    let u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
-    let u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
-
-    let lightDirection = new Vector3([0.5, 3.0, 4.0]);   // Set the light direction (in the world coordinate)
-    lightDirection.normalize();     // Normalize
-
-    gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
-    gl.uniform3f(u_LightPosition, 0.0, 6.0, 0.0);
-    gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
-    // gl.uniform3fv(u_LightDirection, lightDirection.elements);
-
-}
-
-// Batch calls to glUnfirom
-
-function perspective(gl, canvas) {
-
-    console.log("Calling perspective");
-
-    let viewMatrix = new Matrix4(), projMatrix = new Matrix4();
-
-    let u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
-    let u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
-
-    viewMatrix.setLookAt(2, 2, 15, 2, 2, 0, 0, 1, 0);    //eyeX, eyeY, eyeZ, atX, atY, atZ, upX, upY, upZ
-    projMatrix.setPerspective(30, canvas.width / canvas.height, 1, 100);
-
-    // Pass the model, view, and projection matrix to the uniform variable respectively
-    gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
-    gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
-
-}
-
-// Sophie's approach makes a LOT more sense. For now, at least. Let's go to a new branch
 
 function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
 
@@ -189,16 +171,8 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler
 
   // Draw the scene
   draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler);
+
 }
-
-// It's a semantically incorrect division. And is it for each? Does each object have it's own matrices?
-// Or do I just keep populating them? NO. They do have the same, because all are effected in the SAME WAY by camera
-// and perspective changes. This may change with a more complicated implementation, though. #
-
-// I'm getting to the point where I can have a list of objects to draw!
-// Let's add a second cube and see what happens!
-
-// This dude's drawScene is absolutely beautiful.
 
 function initObjectVertexBuffers(gl, object) {
 
@@ -222,11 +196,7 @@ function initObjectVertexBuffers(gl, object) {
 
     return object.indices.length;
 
-
 }
-
-// Do I really need to create buffers each time? Couldn't I just update them?
-// Is that where the overhead is?
 
 const WHITE = [1.0, 1.0, 1.0];
 const RED = [1.0, 0.0, 0.0];
@@ -270,10 +240,6 @@ let objects = {
     // Add a roof! Fool of a Took. Just create it at the origin then do everything properly.
 
 };
-
-// We'd need to... yeah. Let's do that for now.
-
-// Where is this texure bound? I've got that it's been created...
 
 
 function draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
@@ -323,10 +289,10 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
         gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
 
         // Calculate the normal transformation matrix and pass it to u_NormalMatrix
-        g_normalMatrix.setInverseOf(modelMatrix);
-        g_normalMatrix.transpose();
+        normalMatrix.setInverseOf(modelMatrix);
+        normalMatrix.transpose();
 
-        gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
+        gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
         // gl.activeTexture(gl.TEXTURE0);
         // gl.bindTexture(gl.TEXTURE_2D, texture);

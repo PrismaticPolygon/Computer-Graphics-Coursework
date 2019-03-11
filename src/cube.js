@@ -9,21 +9,13 @@ function createLeftTrapezoid(width, height, depth, x, y, z, color) {
     //       \  |/
     //         \v2
 
+    let theta = Math.tan(depth / width);
     let v0 = [x, y, z];
     let v1 = [x + width, y, z];
     let v2 = [x + width, y, z + depth];
     let v3 = [x, y + height, z];
     let v4 = [x + width, y + height, z];
     let v5 = [x + width, y + height, z + depth];
-
-    let v0Normal = [-1.0, -1.0, -1.0];
-    let v1Normal = [1.0, -1.0, -1.0];
-    let v2Normal = [1.0, -1.0, 1.0];
-
-    let v3Normal = [-1.0, 1.0, -1.0];
-    let v4Normal = [-1.0, 1.0, 1.0];
-    let v5Normal = [1.0, 1.0, 1.0];
-
 
     const vertices = new Float32Array([   // Coordinates
         ...v0, ...v1, ...v2,        // down
@@ -43,22 +35,18 @@ function createLeftTrapezoid(width, height, depth, x, y, z, color) {
         ...color, ...color, ...color,
     ]);
 
-    // I don't know what these are! How do I define them? The direction that light bounces off each vertex?
-    // Cause it's going to vary for each trapezoid corner. Let's eliminate unneeded entries and see what happens!
+    let n_x = Math.sin(theta), n_z = Math.cos(theta);
 
-    // Now: these normals are going to be groovy.
-
-    const normals = new Float32Array([    //
-        ...v0Normal, ...v1Normal, ...v2Normal,        // down
-        ...v0Normal, ...v3Normal, ...v4Normal, ...v1Normal, // back
-        ...v1Normal, ...v2Normal, ...v5Normal, ...v4Normal, // right
-        ...v2Normal, ...v0Normal, ...v3Normal, ...v5Normal, // left
-        ...v3Normal, ...v4Normal, ...v5Normal,        // up
+    const normals = new Float32Array([
+        0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,                  // down
+        0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0, // back
+        n_x, 0.0, n_z,   n_x, 0.0, n_z,   n_x, 0.0, n_z,   n_x, 0.0, n_z, // right
+        1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0, // left
+        0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0, // up
     ]);
 
     const textureCoordinates = vertices;
 
-    // Defines where to draw triangles between.
     const indices = new Uint8Array([
         0, 1, 2,               // down
         3, 4, 5,   3, 5, 6,    // back
@@ -77,6 +65,8 @@ function createLeftTrapezoid(width, height, depth, x, y, z, color) {
 
 }
 
+// Fix trapezoid normals too!
+
 function createRightTrapezoid(width, height, depth, x, y, z, color) {
 
     // Create a trapezoid
@@ -88,20 +78,14 @@ function createRightTrapezoid(width, height, depth, x, y, z, color) {
     //       \  |/
     //         \v2
 
+    let theta = Math.tan(depth / width);
+
     let v0 = [x, y, z];
     let v1 = [x + width, y, z];
     let v2 = [x, y, z + depth];
     let v3 = [x, y + height, z];
     let v4 = [x + width, y + height, z];
     let v5 = [x, y + height, z + depth];
-
-    let v0Normal = [-1.0, -1.0, -1.0];
-    let v1Normal = [1.0, -1.0, -1.0];
-    let v2Normal = [1.0, -1.0, 1.0];
-
-    let v3Normal = [-1.0, 1.0, -1.0];
-    let v4Normal = [-1.0, 1.0, 1.0];
-    let v5Normal = [1.0, 1.0, 1.0];
 
     const vertices = new Float32Array([   // Coordinates
         ...v0, ...v1, ...v2,        // down
@@ -121,17 +105,18 @@ function createRightTrapezoid(width, height, depth, x, y, z, color) {
         ...color, ...color, ...color,
     ]);
 
-    const normals = new Float32Array([    //
-        ...v0Normal, ...v1Normal, ...v2Normal,        // down
-        ...v0Normal, ...v3Normal, ...v4Normal, ...v1Normal, // back
-        ...v1Normal, ...v2Normal, ...v5Normal, ...v4Normal, // right
-        ...v2Normal, ...v0Normal, ...v3Normal, ...v5Normal, // left
-        ...v3Normal, ...v4Normal, ...v5Normal,        // up
+    let n_x = -1.0 *  Math.sin(theta), n_z = Math.cos(theta);
+
+    const normals = new Float32Array([
+        0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,                  // down
+        0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0, // back
+        1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0, // right
+        n_x, 0.0, n_z,   n_x, 0.0, n_z,   n_x, 0.0, n_z,   n_x, 0.0, n_z, // left
+        0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0, // up
     ]);
 
     const textureCoordinates = vertices;
 
-    // Defines where to draw triangles between.
     const indices = new Uint8Array([
         0, 1, 2,               // down
         3, 4, 5,   3, 5, 6,    // back
@@ -152,8 +137,6 @@ function createRightTrapezoid(width, height, depth, x, y, z, color) {
 
 function createCuboid(width, height, depth, x, y, z, color) {
 
-    // Does it depend on this size? Or the size of something else?
-
     // Create a cube
     //    v4----- v5
     //   /|      /|
@@ -172,15 +155,6 @@ function createCuboid(width, height, depth, x, y, z, color) {
     let v6 = [x + width, y + height, z + depth];
     let v7 = [x, y + height, z + depth];
 
-    let v0Normal = [-1.0, -1.0, -1.0];
-    let v1Normal = [1.0, -1.0, -1.0];
-    let v2Normal = [1.0, -1.0, 1.0];
-    let v3Normal = [-1.0, -1.0, 1.0];
-    let v4Normal = [-1.0, 1.0, -1.0];
-    let v5Normal = [1.0, 1.0, -1.0];
-    let v6Normal = [1.0, 1.0, 1.0];
-    let v7Normal = [-1.0, 1.0, 1.0];
-
     const vertices = new Float32Array([   // Coordinates
         ...v0, ...v1, ...v2, ...v3, // down
         ...v0, ...v4, ...v5, ...v1, // back
@@ -191,10 +165,6 @@ function createCuboid(width, height, depth, x, y, z, color) {
     ]);
 
     color = color ? color : [Math.random(), Math.random(), Math.random()];
-
-    // Do I make it wrap?
-    // Vertices should be fine, though, right?
-
 
     const textureCoordinates = vertices;
 
@@ -207,15 +177,13 @@ function createCuboid(width, height, depth, x, y, z, color) {
         ...color, ...color, ...color, ...color　    // top
     ]);
 
-    // Normals are fucked, yo! At least I'll have to learn what they mean.
-
-    const normals = new Float32Array([    // Normals
-        ...v0Normal, ...v1Normal, ...v2Normal, ...v3Normal, // down
-        ...v0Normal, ...v4Normal, ...v5Normal, ...v1Normal, // back
-        ...v1Normal, ...v2Normal, ...v6Normal, ...v5Normal, // right
-        ...v2Normal, ...v3Normal, ...v7Normal, ...v6Normal, // front
-        ...v3Normal, ...v0Normal, ...v4Normal, ...v7Normal, // left
-        ...v4Normal, ...v5Normal, ...v6Normal, ...v7Normal  // top
+    const normals = new Float32Array([
+        0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0, // down
+        0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0, // back
+        1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0, // right
+        0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0, // front
+        -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0, // left
+        0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0, // up
     ]);
 
     const indices = new Uint8Array([
