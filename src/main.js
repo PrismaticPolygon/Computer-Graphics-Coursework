@@ -80,6 +80,23 @@ let normalMatrix = new Matrix4();  // Coordinate transformation matrix for norma
 let mvpMatrix = new Matrix4();
 let texture;
 
+let textures = {
+
+    white_wood: {
+        texture: null,
+        src: white_wood
+    },
+
+    brick: {
+        texture: null,
+        src: brick
+    }
+
+};
+
+// Far better to. How will I know which texture is bound to which without a key?
+// Return the specific ID, associate each shape with a "thing", and then get the right texture.
+
 let ANGLE_STEP = 3.0;  // The increments of rotation angle (degrees)
 let g_xAngle = 0.0;    // The rotation x angle (degrees)
 let g_yAngle = 0.0;    // The rotation y angle (degrees)
@@ -88,12 +105,20 @@ let g_eyeX = 12;
 let g_eyeY = 12;
 let g_eyeZ = 12;
 
+// We have textures 0 through 7.
+
 function main() {
 
     const canvas = document.getElementById('webgl'); // Retrieve <canvas> element
     const gl = getWebGLContext(canvas); // Get the webGL context
 
-    texture = loadTexture(gl, brick);
+    for (let key in textures) {
+
+        console.log("Loading", key);
+
+        textures[key].texture = loadTexture(gl, textures[key].src);
+
+    }
 
     // Then it SHOULD work on rotation, right?
 
@@ -209,7 +234,7 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextur
 
 }
 
-function initObjectVertexBuffers(gl, object) {
+function initObjectBuffers(gl, object) {
 
     if (!initArrayBuffer(gl, 'a_Position', object.vertices, 3, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_Color', object.colors, 3, gl.FLOAT)) return -1;
@@ -284,7 +309,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_S
     for (let key in objects) {
 
         let object = objects[key];
-        let n = initObjectVertexBuffers(gl, object);
+        let n = initObjectBuffers(gl, object);
 
         modelMatrix.setTranslate(0, 0, 0);
         modelMatrix.rotate(g_yAngle, 0, 1, 0); // Rotate along y axis
@@ -331,7 +356,7 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_S
         gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        // gl.bindTexture(gl.TEXTURE_2D);
 
         gl.uniform1i(u_UseTextures, 1);
 
