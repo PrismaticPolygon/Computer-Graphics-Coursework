@@ -3,39 +3,29 @@ const VSHADER_SOURCE = `
     attribute vec4 a_Position;
     attribute vec4 a_Color;
     attribute vec4 a_Normal;
-    attribute vec2 a_TextureCoord;
+    
+    attribute vec2 a_TexCoords;
     
     uniform mat4 u_ModelMatrix;
     uniform mat4 u_NormalMatrix;
     uniform mat4 u_ViewMatrix;
     uniform mat4 u_ProjMatrix;
     
-    uniform vec3 u_LightColor;
-    uniform vec3 u_LightDirection;
-    
     varying vec4 v_Color;
-    varying highp vec2 v_TextureCoord;
     
-    uniform bool u_isLighting;
+    varying vec3 v_Normal;
+    varying vec3 v_Position;
+    
+    varying vec2 v_TexCoords;
     
     void main() {
     
         gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
-        
-        if (u_isLighting) {
-        
-            vec3 normal = normalize((u_NormalMatrix * a_Normal).xyz);
-            float nDotL = max(dot(normal, u_LightDirection), 0.0);
-            
-            vec3 diffuse = u_LightColor * a_Color.rgb * nDotL;
-            v_Color = vec4(diffuse, a_Color.a);
-            
-        } else {
-        
-            v_Color = a_Color;
-        }
-        
-        v_TextureCoord = a_TextureCoord;
+       
+        v_Position = vec3(u_ModelMatrix * a_Position);
+        v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
+        v_Color = a_Color;
+        v_TexCoords = a_TexCoords;
         
     }
     
@@ -58,6 +48,7 @@ const VSHADER_SOURCE = `
 // May as well make our house, right?
 // Steps should be easy, right?
 // And using this as basis, I should be able to make reality whatever I want.
+// Lots of crap here.
 
 const FSHADER_SOURCE = `
 
@@ -68,14 +59,36 @@ const FSHADER_SOURCE = `
     #endif
     
     varying vec4 v_Color;
-    varying highp vec2 v_TextureCoord;
+    varying vec3 v_Normal;
+    varying vec3 v_Position;
+    varying vec2 v_TexCoords;
     
+    uniform bool u_UseTextures;
+    uniform vec3 u_LightColor;
+    uniform vec3 u_LightPosition;
+    uniform vec3 u_AmbientLight;
     uniform sampler2D u_Sampler; 
     
     void main() {
     
-        // gl_FragColor = texture2D(u_Sampler, v_TextureCoord);
-        gl_FragColor = v_Color;
+        vec3 normal = normalize(v_Normal);
+        vec3 lightDirection = normalize(u_LightPosition - v_Position);
+        float nDotL = max(dot(lightDirection, normal), 0.0);
+        vec3 diffuse;
+    
+        if (u_UseTextures) {
+        
+            vec4 TexColor = texture2D(u_Sampler, v_TexCoords);
+            diffuse = u_LightColor * TexColor.rgb * nDotL * 1.2;
+        
+        } else {
+       
+            diffuse = u_LightColor * v_Color.rgb * nDotL;
+        
+        } 
+    
+        vec3 ambient = u_AmbientLight * v_Color.rgb;
+        gl_FragColor = vec4(diffuse + ambient, v_Color.a);
         
     }
 `;
@@ -135,15 +148,17 @@ function main() {
 function lighting(gl) {
 
     let u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-    let u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
-    let u_isLighting = gl.getUniformLocation(gl.program, 'u_isLighting');
+    // let u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
+    let u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+    let u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
 
     let lightDirection = new Vector3([0.5, 3.0, 4.0]);   // Set the light direction (in the world coordinate)
     lightDirection.normalize();     // Normalize
 
     gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
-    gl.uniform3fv(u_LightDirection, lightDirection.elements);
-    gl.uniform1i(u_isLighting, 1); // Will apply lighting
+    gl.uniform3f(u_LightPosition, 2.3, 4.0, 3.5);
+    gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+    // gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
 }
 
@@ -210,7 +225,7 @@ function initObjectVertexBuffers(gl, object) {
     if (!initArrayBuffer(gl, 'a_Position', object.vertices, 3, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_Color', object.colors, 3, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_Normal', object.normals, 3, gl.FLOAT)) return -1;
-    if (!initArrayBuffer(gl, 'a_TextureCoord', object.textureCoordinates, 3, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_TexCoords', object.textureCoordinates, 3, gl.FLOAT)) return -1;
 
     // Write the indices to the buffer object
     let indexBuffer = gl.createBuffer();

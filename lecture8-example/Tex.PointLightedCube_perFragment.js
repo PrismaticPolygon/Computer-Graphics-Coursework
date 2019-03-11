@@ -158,7 +158,7 @@ function main() {
   // Register the event handler to be called on loading an image
     Cubetexture.crossOrigin = "";
   Cubetexture.image.onload = function(){ loadTexAndDraw(gl, n, Cubetexture, u_Sampler, u_UseTextures); };
-  Cubetexture.image.src = 'http://localhost:8000/sky.jpg';
+  Cubetexture.image.src = brick;
 
 }
 
@@ -291,7 +291,7 @@ function loadTexAndDraw(gl, n, texture, u_Sampler, u_UseTextures) {
   gl.uniform1i(u_Sampler, 0);
 
   // Enable texture mapping
-  gl.uniform1i(u_UseTextures, true);
+  gl.uniform1i(u_UseTextures, 1);
 
   // Draw the textured cube
   gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
