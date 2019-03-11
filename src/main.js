@@ -31,32 +31,9 @@ const VSHADER_SOURCE = `
     
 `;
 
-// Gotta define those buffers somewhere!
-
-// const attribs = {
-//     a_Position: {buffer: buffers.position, numComponents: 3},
-//     a_Color: {buffer: buffers.color, numComponents: 3},
-//     a_Normal: {buffer: buffers.normal, numComponents: 3},
-// };
-
-// At init time, create all shaders, all programs, and look up locations.
-// Create buffers and upload vertex data
-// Create textures and upload texture data
-
-// This dude advocates a BufferInfo object, but why would I have different bufferInfos?
-
-// May as well make our house, right?
-// Steps should be easy, right?
-// And using this as basis, I should be able to make reality whatever I want.
-// Lots of crap here.
-
 const FSHADER_SOURCE = `
 
-    #ifdef GL_ES
-    
-        precision mediump float;
-        
-    #endif
+    precision mediump float;
     
     varying vec4 v_Color;
     varying vec3 v_Normal;
@@ -93,6 +70,10 @@ const FSHADER_SOURCE = `
     }
 `;
 
+// Anything that requires syncing CPU and GPU sides is very slow: avoid doing so in main rendering loop.
+// Also include WebGL getter calls. Fewer, larger, draw operations will improve performance.
+// Do as much as possibel in the vertex shader.
+
 // It's texture or nothing now, unless I come up with two different shaders.
 
 var modelMatrix = new Matrix4(); // The model matrix
@@ -115,6 +96,8 @@ function main() {
 
     texture = loadTexture(gl, brick);
 
+    // Then it SHOULD work on rotation, right?
+
     initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
 
     gl.clearColor(1.0, 1.0, 1.0, 1.0); // Set clear color
@@ -124,28 +107,21 @@ function main() {
     // Get the storage locations of uniform attributes
     let u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
     let u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
+    let u_UseTextures = gl.getUniformLocation(gl.program, 'u_UseTextures');
+    let u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
 
     lighting(gl);
     perspective(gl, canvas);
 
-    document.onkeydown = function(ev){ keydown(ev, gl, u_ModelMatrix, u_NormalMatrix); };
+    document.onkeydown = function(ev){ keydown(ev, gl, u_ModelMatrix, u_NormalMatrix), u_UseTextures, u_Sampler; };
 
-    draw(gl, u_ModelMatrix, u_NormalMatrix);
+    draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler);
 
 }
 
-// But clearly, each thing is it's own `thing`.
-// So J has drawBuilding and drawGround methods, passing in the same matrices: u_ModelMatrix, and u_NormalMatrix.
-// All that changes is the initBoxVertexBuffers, I imagine.
-
-// The eye point doesn't 'move'. Instead, the objects comprising the world move instead.
-// Aha! The model matrix defines translation, rotation, and scaling operations.
-// Does it follow that I need one for each object? Yes.
-
-// Multiplying the view matrix by the model matrix is inefficient in the shader. The operation can be performed once
-// and passed in, as it is the same for every vertex. And so we get the ModelViewMatrix!
-
 function lighting(gl) {
+
+    console.log("Calling lighting");
 
     let u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
     // let u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
@@ -156,20 +132,24 @@ function lighting(gl) {
     lightDirection.normalize();     // Normalize
 
     gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
-    gl.uniform3f(u_LightPosition, 2.3, 4.0, 3.5);
+    gl.uniform3f(u_LightPosition, 0.0, 6.0, 0.0);
     gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
     // gl.uniform3fv(u_LightDirection, lightDirection.elements);
 
 }
 
+// Batch calls to glUnfirom
+
 function perspective(gl, canvas) {
+
+    console.log("Calling perspective");
 
     let viewMatrix = new Matrix4(), projMatrix = new Matrix4();
 
     let u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
     let u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
 
-    viewMatrix.setLookAt(0, 0, 15, 0, 0, -100, 0, 1, 0);    //eyeX, eyeY, eyeZ, atX, atY, atZ, upX, upY, upZ
+    viewMatrix.setLookAt(2, 2, 15, 2, 2, 0, 0, 1, 0);    //eyeX, eyeY, eyeZ, atX, atY, atZ, upX, upY, upZ
     projMatrix.setPerspective(30, canvas.width / canvas.height, 1, 100);
 
     // Pass the model, view, and projection matrix to the uniform variable respectively
@@ -180,7 +160,7 @@ function perspective(gl, canvas) {
 
 // Sophie's approach makes a LOT more sense. For now, at least. Let's go to a new branch
 
-function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix) {
+function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
 
   switch (ev.keyCode) {
 
@@ -208,7 +188,7 @@ function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix) {
   }
 
   // Draw the scene
-  draw(gl, u_ModelMatrix, u_NormalMatrix);
+  draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler);
 }
 
 // It's a semantically incorrect division. And is it for each? Does each object have it's own matrices?
@@ -245,12 +225,11 @@ function initObjectVertexBuffers(gl, object) {
 
 }
 
-// It'll be off-centre when I translate it!
-// So Blender could output the model. So, what's then the hard part? I don't have the time to
-// invest looking into that.
+// Do I really need to create buffers each time? Couldn't I just update them?
+// Is that where the overhead is?
+
 const WHITE = [1.0, 1.0, 1.0];
 const RED = [1.0, 0.0, 0.0];
-
 
 let objects = {
 
@@ -278,18 +257,33 @@ let objects = {
     frontWindowBottomCentre: createCuboid(1.2, 0.7, 0.4, -0.1, -3, 2),
     frontWindowBottomRight: createRightTrapezoid(0.4, 0.7, 0.4, 1.1, -3, 2),
 
+    frontWindowTopSlopeCentre: createRightTrapezoid(0.95, 1.25, 0.3, 1, 1, 2),
+
     nathanielWindowFrame: createCuboid(1.2, 1.6, 0.005, -0.1, 1.1, 2, WHITE),
     nathanielWindowTop: createCuboid(1.2, 0.3, 0.1, -0.1, 2.65, 2, WHITE),
     nathanielWindow: createCuboid(1.1, 1.4, 0.005, -0.05, 1.2, 2),
     nathanielWindowBottom: createCuboid(1.2, 0.3, 0.1, -0.1, 0.8, 2, WHITE),
 
+    frontRoof: createRightTrapezoid(1, 4, 2, 0, 0, 0, WHITE),
+    backRoof: createLeftTrapezoid(2, 4, 1, 0, 0, 0, WHITE)
+
+    // Add a roof! Fool of a Took. Just create it at the origin then do everything properly.
+
 };
 
-function draw(gl, u_ModelMatrix, u_NormalMatrix) {
+// We'd need to... yeah. Let's do that for now.
+
+// Where is this texure bound? I've got that it's been created...
+
+
+function draw(gl, u_ModelMatrix, u_NormalMatrix, u_UseTextures, u_Sampler) {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear color and depth buffer
     gl.enable(gl.DEPTH_TEST);   // Enable depth testing
     gl.depthFunc(gl.LEQUAL);    // Near things obscure far things
+
+    // Shouldn't call these multiple times, I suspect!
+    // It's rotated around the origin. How on earth can I figure out where it's supposed to gO?
 
     for (let key in objects) {
 
@@ -301,6 +295,30 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix) {
         modelMatrix.rotate(g_xAngle, 1, 0, 0); // Rotate along x axis
         modelMatrix.scale(0.9, 0.9, 0.9); // Scale
 
+        if (key === "frontWindowTopSlopeCentre") {
+
+            modelMatrix.rotate(90, 0, 0, 1);
+            modelMatrix.translate(-1.2, -2.1, 0);
+
+        }
+
+        if (key === "frontRoof") {
+
+            modelMatrix.translate(2, 3, 0);
+            modelMatrix.rotate(90, 0, 0, 1);
+
+        }
+
+        if (key === "backRoof") {
+
+            modelMatrix.translate(-2, 3, -2);
+            modelMatrix.rotate(0, 0, 0, 1);
+
+
+        }
+
+
+
         // Pass the model matrix to the uniform variable
         gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
 
@@ -310,12 +328,13 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix) {
 
         gl.uniformMatrix4fv(u_NormalMatrix, false, g_normalMatrix.elements);
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        // gl.activeTexture(gl.TEXTURE0);
+        // gl.bindTexture(gl.TEXTURE_2D, texture);
 
-        let uSampler = gl.getUniformLocation(gl.program, 'u_Sampler');
+        // gl.uniform1i(u_Sampler, 1);
+        // gl.uniform1i(u_UseTextures, 1);
 
-        gl.uniform1i(uSampler, 0);
+        // Wow. Using textures fucks everything!
 
         // Draw the cube
         gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);
