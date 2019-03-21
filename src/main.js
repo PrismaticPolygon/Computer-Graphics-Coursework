@@ -10,25 +10,20 @@ let normalMatrix = new Matrix4();  // Coordinate transformation matrix for norma
 
 let INIT_TEXTURE_COUNT = 0;
 
-let g_eyeX = 1;    // The x co-ordinate of the eye
-let g_eyeY = 1;    // The y co-ordinate of the eye
-let g_eyeZ = 1;    // The z co-ordinate of the eye
-let g_eyeDelta = 0.2;
+let g_atX = 1;    // The x co-ordinate of the eye
+let g_atY = 1;    // The y co-ordinate of the eye
+let g_atZ = 1;    // The z co-ordinate of the eye
+let g_atDelta = 0.2;    // The movement delta of the eye
 
-let STEP_SIZE = 0.2;
 let g_lookAtX = 0;  // The x co-ordinate the eye is looking at
 let g_lookAtY = 0;  // The y co-ordinate the eye is looking at
 let g_lookAtZ = 0;  // The z co-ordinate the eye is looking at
-
-// Instead of having a lookAt, we calc it from the angle and the current location! Nice.
-
+let g_lookAtDelta = 5;  // The increments of rotation angle (degrees)
 
 let yaw = 0;    // (+left, -right)
 let pitch = 0;  // (0 up, 180 down)
-let g_angleDelta = 5;  // The increments of rotation angle (degrees)
 
 let prev = new Date().getTime();
-
 let canvas;
 let gl;
 let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_Sampler;
@@ -102,63 +97,75 @@ function keydown(ev) {
 
         case 40: // Up arrow key -> look up
 
-            pitch = Math.min(pitch + g_angleDelta, 179.9);
+            pitch = Math.min(pitch + g_lookAtDelta, 179.9);
 
             break;
 
         case 38: // Down arrow key -> look down
 
-            pitch = Math.max(pitch - g_angleDelta, 0.1);
+            pitch = Math.max(pitch - g_lookAtDelta, 0.1);
 
             break;
 
         case 39: // Right arrow key -> look right
 
-            yaw = (yaw - g_angleDelta) % 360;
+            yaw = (yaw - g_lookAtDelta) % 360;
 
             break;
 
         case 37: // Left arrow key -> look left
 
-            yaw = (yaw + g_angleDelta) % 360;
+            yaw = (yaw + g_lookAtDelta) % 360;
 
             break;
 
         case 87:  // w key -> move the eye forwards
 
-            g_eyeX += STEP_SIZE * Math.sin(yaw * Math.PI / 180);
-            g_eyeZ += STEP_SIZE * Math.cos(yaw * Math.PI / 180);
+            g_atX += g_atDelta * Math.sin(yaw * Math.PI / 180);
+            g_atZ += g_atDelta * Math.cos(yaw * Math.PI / 180);
 
             break;
 
         case 65:  // a key -> move the eye left
 
-            g_eyeX += STEP_SIZE * Math.cos(yaw * Math.PI / 180);
-            g_eyeZ -= STEP_SIZE * Math.sin(yaw * Math.PI / 180);
+            g_atX += g_atDelta * Math.cos(yaw * Math.PI / 180);
+            g_atZ -= g_atDelta * Math.sin(yaw * Math.PI / 180);
 
             break;
 
         case 83:  // s key -> move the eye backwards
 
-            g_eyeX -= STEP_SIZE * Math.sin((yaw) * Math.PI / 180);
-            g_eyeZ -= STEP_SIZE * Math.cos((yaw) * Math.PI / 180);
+            g_atX -= g_atDelta * Math.sin((yaw) * Math.PI / 180);
+            g_atZ -= g_atDelta * Math.cos((yaw) * Math.PI / 180);
 
             break;
 
         case 68:  // d key -> move the eye left
 
-            g_eyeX -= STEP_SIZE * Math.cos(yaw * Math.PI / 180);
-            g_eyeZ += STEP_SIZE * Math.sin(yaw * Math.PI / 180);
+            g_atX -= g_atDelta * Math.cos(yaw * Math.PI / 180);
+            g_atZ += g_atDelta * Math.sin(yaw * Math.PI / 180);
+
+            break;
+
+        case 16:  // shift key -> move the eye up
+
+            g_atY += g_atDelta;
+
+            break;
+
+        case 17:  // ctrl key -> move the eye down
+
+            g_atY -= g_atDelta;
 
             break;
 
     }
 
-    g_lookAtX = g_eyeX + Math.sin(yaw * Math.PI / 180) * Math.sin(pitch * Math.PI / 180);  // The x co-ordinate the eye is looking at
-    g_lookAtY = g_eyeY + Math.cos(pitch * Math.PI / 180);  // The y co-ordinate the eye is looking at
-    g_lookAtZ = g_eyeZ + Math.cos(yaw * Math.PI / 180) * Math.sin(pitch * Math.PI / 180);  // The z co-ordinate the eye is looking at
+    g_lookAtX = g_atX + Math.sin(yaw * Math.PI / 180) * Math.sin(pitch * Math.PI / 180);  // The x co-ordinate the eye is looking at
+    g_lookAtY = g_atY + Math.cos(pitch * Math.PI / 180);  // The y co-ordinate the eye is looking at
+    g_lookAtZ = g_atZ + Math.cos(yaw * Math.PI / 180) * Math.sin(pitch * Math.PI / 180);  // The z co-ordinate the eye is looking at
 
-    // console.log(g_eyeX, g_eyeY, g_eyeZ, g_lookAtX, g_lookAtY, g_lookAtZ);
+    // console.log(g_atX, g_atY, g_atZ, g_lookAtX, g_lookAtY, g_lookAtZ);
 
 }
 
@@ -173,7 +180,7 @@ function draw() {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    viewMatrix.setLookAt(g_eyeX, g_eyeY, g_eyeZ, g_lookAtX, g_lookAtY, g_lookAtZ, 0, 1, 0);
+    viewMatrix.setLookAt(g_atX, g_atY, g_atZ, g_lookAtX, g_lookAtY, g_lookAtZ, 0, 1, 0);
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
     draw_table(1, 1, 1);
