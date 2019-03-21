@@ -6,9 +6,9 @@ let normalMatrix = new Matrix4();  // Coordinate transformation matrix for norma
 
 let INIT_TEXTURE_COUNT = 0;
 
-let g_atX = 0;    // The x co-ordinate of the eye
-let g_atY = 1;    // The y co-ordinate of the eye
-let g_atZ = 4;    // The z co-ordinate of the eye
+let g_atX = -2;    // The x co-ordinate of the eye
+let g_atY = 2;    // The y co-ordinate of the eye
+let g_atZ = 6;    // The z co-ordinate of the eye
 
 let g_atDelta = 0.005;    // The movement delta of the eye
 let g_lookAtDelta = 0.05;  // The rotation delta of the angle the eye is looking at (degrees)
@@ -162,7 +162,7 @@ function handleKeys() {
 
 function draw() {
 
-    if (INIT_TEXTURE_COUNT < 3) {   // Don't do anything until textures have been loaded
+    if (INIT_TEXTURE_COUNT < 4) {   // Don't do anything until textures have been loaded
 
         return;
 
@@ -177,8 +177,34 @@ function draw() {
     viewMatrix.setLookAt(g_atX, g_atY, g_atZ, g_lookAtX, g_lookAtY, g_lookAtZ, 0, 1, 0);
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
-    draw_front_door(0, 0, 0);
+    // That's just because my door is wrong, lol.
+
+    draw_floor();
+    draw_front_door(-2, 0, 2);
     draw_front_window(1.8, 1.2, 0.2);
+
+}
+
+function draw_floor() {
+
+    let height = 0.0001;
+    let n = initPlaneVertexBuffers(gl, 0.4, 0.4, 0.4, 0.7);
+
+    if (n < 0) {
+
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    pushMatrix(modelMatrix);
+
+    modelMatrix.setRotate(-90, 1, 0, 0);
+    modelMatrix.translate(0, 0, -height);
+    modelMatrix.scale(8, 8, height);
+
+    draw_plane(n);
+
+    modelMatrix = popMatrix();
 
 }
 
@@ -221,22 +247,23 @@ function draw_front_window(x, y, z) {
 
 }
 
+// Forms a door with door frame - x, y, z at centre of door
+// Rotates around a hinge like a real door by angle open_by
 function draw_front_door(x, y, z) {
 
     let frame_width = 0.03;
-    let width = 0.7;
+    let door_depth = 0.1;
+    let width = 0.67;
     let height = 1.8;
     let window_height = 0.4;
-
-    // Forms a door with door frame - x, y, z at centre of door
-    // Total size - width + 0.12 * height + 0.06 * 0.1
-    // Rotates around a hinge like a real door by angle open_by
+    let lintel_width = 1.2;
+    let step_height = 0.2;
+    let step_depth = 0.3;
 
     pushMatrix(modelMatrix);
 
     modelMatrix.translate(x, y, z);
 
-    // Draw frame
     let n = initCubeVertexBuffers(gl, 0.4, 0.4, 0.4);
 
     if (n < 0) {
@@ -246,42 +273,70 @@ function draw_front_door(x, y, z) {
 
     }
 
-    for (let i = 0; i <= 1; i++) {
+    // step
+    pushMatrix(modelMatrix);
 
-        let sign = Math.pow(-1, i);
+    modelMatrix.translate(frame_width + width / 2, step_height / 2, step_depth / 2);
+    modelMatrix.scale(width, step_height, step_depth);
+
+    draw_cube(n, 4);
+
+    modelMatrix = popMatrix();
+
+    //bottom frame
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(frame_width + width / 2, step_height + frame_width / 2, door_depth / 2);
+    modelMatrix.scale(width, frame_width, door_depth);
+
+    draw_cube(n, 1);
+
+    modelMatrix = popMatrix();
+
+    //middle frame
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(frame_width + width / 2, step_height + 1.5 * frame_width + height, door_depth / 2);
+    modelMatrix.scale(width, frame_width, door_depth);
+
+    draw_cube(n, 1);
+
+    modelMatrix = popMatrix();
+
+    //top frame
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(frame_width + width / 2, step_height + 2.5 * frame_width + height + window_height, door_depth / 2);
+    modelMatrix.scale(width, frame_width, door_depth);
+
+    draw_cube(n, 1);
+
+    modelMatrix = popMatrix();
+
+    // lintel
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(frame_width + width / 2, step_height + 3 * frame_width + height + window_height + step_height / 2, door_depth / 2);
+    modelMatrix.scale(lintel_width, step_height, door_depth);
+
+    draw_cube(n, 4);
+
+    modelMatrix = popMatrix();
+
+    // sides
+    for (let i = 0; i <= 1; i++) {
 
         // Left/right
         pushMatrix(modelMatrix);
 
-        modelMatrix.translate(sign * (width / 2 + frame_width), (frame_width + window_height) / 2, 0);
-        modelMatrix.scale(2 * frame_width, height + 3 * frame_width + window_height, 0.1);
+        modelMatrix.translate(frame_width + (i * (width)), step_height + (height + 3 * frame_width + window_height) / 2, door_depth / 2);
+        modelMatrix.scale(frame_width, height + 3 * frame_width + window_height, door_depth);
 
         draw_cube(n, 1);
 
         modelMatrix = popMatrix();
 
     }
-
-    //bottom
-
-
-
-    //middle
-
-    pushMatrix(modelMatrix);
-    modelMatrix.translate(0, height / 2 + frame_width, 0);
-    modelMatrix.scale(width, 2 * frame_width, 0.1);
-    draw_cube(n, 1);
-    modelMatrix = popMatrix();
-
-
-    // top
-    pushMatrix(modelMatrix);
-    modelMatrix.translate(0, height / 2 + + window_height + frame_width, 0);
-    modelMatrix.scale(width, 2 * frame_width, 0.1);
-    draw_cube(n, 1);
-    modelMatrix = popMatrix();
-
 
     // Draw door
     n = initCubeVertexBuffers(gl, 182/255, 155/255, 76/255);
@@ -291,32 +346,35 @@ function draw_front_door(x, y, z) {
         return;
     }
 
-    // Door just vanishes, yo!
     // Make door flush with inside frame. Use double translate for easy hinge design
-    modelMatrix.translate(width / 2, 0, 0.05);
-    modelMatrix.rotate(0, 0, 1, 0); // 0 is shut, 100 fully open - looks better than a square 90
-    modelMatrix.translate(-width / 2, 0, -frame_width);
+    // modelMatrix.translate(width / 2, 0, 0.05);
+    // modelMatrix.rotate(0, 0, 1, 0); // 0 is shut, 100 fully open - looks better than a square 90
+    modelMatrix.translate(frame_width + width / 2, step_height + frame_width + height / 2, door_depth / 2);
     modelMatrix.scale(width, height, 2 * frame_width);
+
     draw_cube(n, 3); // Door texture
 
     modelMatrix = popMatrix();
 
     //window
-
-    pushMatrix(modelMatrix);
-    n = initPlaneVertexBuffers(gl, 1, 1, 1, 0.25);
-
-    if (n < 0) {
-
-        console.log('Failed to set the vertex information');
-        return;
-    }
-
-    modelMatrix.translate(0, y + height / 2 + frame_width + window_height / 2, 0.05);
-    modelMatrix.scale(width, window_height, 1);
-    draw_plane(n);
-
-    modelMatrix = popMatrix();
+    // pushMatrix(modelMatrix);
+    //
+    // n = initPlaneVertexBuffers(gl, 1, 1, 1, 0.25);
+    //
+    // if (n < 0) {
+    //
+    //     console.log('Failed to set the vertex information');
+    //     return;
+    //
+    // }
+    //
+    // // I'll be doing little better than guessing. I'll leave this for now, until I can figure out what the problem is.
+    //
+    // modelMatrix.translate(-2 * width, y + height / 2 + frame_width + window_height / 2, 2);
+    // modelMatrix.scale(width, window_height, 1);
+    // draw_plane(n);
+    //
+    // modelMatrix = popMatrix();
 
 }
 
@@ -344,7 +402,7 @@ function createTexture(gl, name, id){
 
     let texture = gl.createTexture(); // Create texture
 
-    if(!texture) {
+    if (!texture) {
 
         console.log("Failed to create texture object");
         return false;
@@ -403,6 +461,7 @@ function initTextures(gl, u_Sampler) {
     createTexture(gl, '../textures/white_wood.jpg', gl.TEXTURE1);
     createTexture(gl, '../textures/slate.jpg', gl.TEXTURE2);
     createTexture(gl, '../textures/door.png', gl.TEXTURE3);
+    createTexture(gl, '../textures/concrete.jpg', gl.TEXTURE4);
 
     return true;
 
