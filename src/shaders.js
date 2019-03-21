@@ -6,9 +6,10 @@ const VSHADER_SOURCE = `
     
     attribute vec2 a_TexCoords;
     
-    uniform mat4 u_MvpMatrix;
-    uniform mat4 u_ModelMatrix;
     uniform mat4 u_NormalMatrix;
+    uniform mat4 u_ModelMatrix;
+    uniform mat4 u_ViewMatrix;
+    uniform mat4 u_ProjMatrix;
     
     varying vec4 v_Color;
     
@@ -19,7 +20,7 @@ const VSHADER_SOURCE = `
     
     void main() {
     
-        gl_Position = u_MvpMatrix * a_Position;
+        gl_Position = u_ProjMatrix * u_ViewMatrix * u_ModelMatrix * a_Position;
        
         v_Position = vec3(u_ModelMatrix * a_Position);
         v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
