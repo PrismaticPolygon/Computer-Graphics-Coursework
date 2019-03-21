@@ -1,7 +1,3 @@
-// Anything that requires syncing CPU and GPU sides is very slow: avoid doing so in main rendering loop.
-// Also include WebGL getter calls. Fewer, larger, draw operations will improve performance.
-// Do as much as possible in the vertex shader.
-
 let modelMatrix = new Matrix4(); // Model matrix
 let viewMatrix = new Matrix4(); // View matrix
 let projMatrix = new Matrix4(); // Projection matrix
@@ -18,7 +14,7 @@ let g_atDelta = 0.2;    // The movement delta of the eye
 let g_lookAtX = 0;  // The x co-ordinate the eye is looking at
 let g_lookAtY = 0;  // The y co-ordinate the eye is looking at
 let g_lookAtZ = 0;  // The z co-ordinate the eye is looking at
-let g_lookAtDelta = 5;  // The rotation delta of the
+let g_lookAtDelta = 5;  // The rotation delta of the angle the eye is looking at (degrees)
 
 //TODO: figure out it we can remove yaw and pith
 
@@ -29,6 +25,10 @@ let prev = new Date().getTime();
 let canvas;
 let gl;
 let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_Sampler;
+
+// Okay, think! What am I going to render? I could just do my house.
+// Whitechurch, Flatwhite
+// We don't want complex shapes. My trapezoids could just be embedded cubes, mind you.
 
 let matrixStack = [];
 
@@ -182,12 +182,11 @@ function draw() {
     viewMatrix.setLookAt(g_atX, g_atY, g_atZ, g_lookAtX, g_lookAtY, g_lookAtZ, 0, 1, 0);
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
-    draw_table(1, 1, 1);
+    draw_door(1, 1, 1);
 
 }
 
-
-function draw_box(n, texture) {
+function draw_cube(n, texture) {
 
     // Texture must be an integer i such that gl.TEXTUREi is used
 
@@ -225,6 +224,50 @@ function draw_box(n, texture) {
 
 }
 
+// We'd want the front door, including the frame and door-step.
+// Let's start there.
+
+
+function draw_door(x, y, z) {
+
+    pushMatrix(modelMatrix);
+    modelMatrix.translate(x, y, z);
+
+    let n = initCubeVertexBuffers(gl);
+
+    // Door frame
+    {
+
+        // pushMatrix(modelMatrix);
+        modelMatrix.scale(0.9, 2.55, 0.001);
+
+        draw_cube(n, 1);
+
+        modelMatrix = popMatrix();
+
+    }
+
+    // Door
+    // {
+    //
+    //     pushMatrix(modelMatrix);
+    //
+    //     modelMatrix.translate(0.05, 0.25, 0);
+    //     modelMatrix.scale(0.7, 1.8, 0.005);
+    //
+    //     draw_cube(n);
+    //
+    //     modelMatrix = popMatrix();
+    //
+    // }
+
+
+    // This is the door!
+    // So, we push the matrix, apply our transformations, then draw it, then pop, and then repeat
+
+}
+
+
 function draw_table(x, y, z) {
 
     pushMatrix(modelMatrix);
@@ -255,7 +298,7 @@ function draw_table(x, y, z) {
 
         modelMatrix.scale(0.02, 0.7, 0.02);
 
-        draw_box(n);
+        draw_cube(n);
 
         modelMatrix=popMatrix();
 
@@ -267,15 +310,13 @@ function draw_table(x, y, z) {
 
         modelMatrix.scale(0.02, 0.02, 0.56);
 
-        draw_box(n);
+        draw_cube(n);
 
         modelMatrix = popMatrix();
 
         modelMatrix = popMatrix(); // back to general translation
 
     }
-
-
 
     // Model the table top
 
@@ -289,13 +330,13 @@ function draw_table(x, y, z) {
 
     }
 
-
+    // Then we translate and scale everything. Nice!
 
     modelMatrix.translate(0, 0.72, 0);
 
     modelMatrix.scale(0.6, 0.04, 0.6);
 
-    draw_box(n, 1);
+    draw_cube(n, 1);
 
     modelMatrix = popMatrix(); // Undo general transform.
 
