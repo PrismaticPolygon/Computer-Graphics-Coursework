@@ -9,13 +9,24 @@ let normalMatrix = new Matrix4();  // Coordinate transformation matrix for norma
 
 
 let INIT_TEXTURE_COUNT = 0;
-let ANGLE_STEP = 3.0;  // The increments of rotation angle (degrees)
-let g_xAngle = 0.0;    // The rotation x angle (degrees)
-let g_yAngle = 0.0;    // The rotation y angle (degrees)
-let EYE_STEP = 0.2;
-let g_eyeX = 12;    // The x co-ordinate of the eye
-let g_eyeY = 12;    // The y co-ordinate of the eye
-let g_eyeZ = 12;    // The z co-ordinate of the eye
+
+let g_eyeX = 1;    // The x co-ordinate of the eye
+let g_eyeY = 1;    // The y co-ordinate of the eye
+let g_eyeZ = 1;    // The z co-ordinate of the eye
+let g_eyeDelta = 0.2;
+
+let STEP_SIZE = 0.2;
+let g_lookAtX = 0;  // The x co-ordinate the eye is looking at
+let g_lookAtY = 0;  // The y co-ordinate the eye is looking at
+let g_lookAtZ = 0;  // The z co-ordinate the eye is looking at
+
+// Instead of having a lookAt, we calc it from the angle and the current location! Nice.
+
+
+let yaw = 0;    // (+left, -right)
+let pitch = 0;  // (0 up, 180 down)
+let g_angleDelta = 5;  // The increments of rotation angle (degrees)
+
 let prev = new Date().getTime();
 
 let canvas;
@@ -24,7 +35,6 @@ let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_
 
 
 let matrixStack = [];
-
 
 
 function pushMatrix(m) {
@@ -38,7 +48,6 @@ function popMatrix() {
     return matrixStack.pop();
 
 }
-
 
 function main() {
 
@@ -56,6 +65,7 @@ function main() {
     u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
     u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
     u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
+
     let u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
     let u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
     let u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
@@ -80,85 +90,82 @@ function main() {
     tick(); //Start rendering
 
     //
-    // document.onkeydown = function(ev){ keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix,
-    //     u_UseTextures, u_Sampler); };
+    document.onkeydown = function(ev) { keydown(ev) }
     //
     // draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler);
 
 }
 
-function keydown(ev, gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler) {
+function keydown(ev) {
 
     switch (ev.keyCode) {
 
-    case 40: // Up arrow key -> the positive rotation of arm1 around the y-axis
+        case 40: // Up arrow key -> look up
 
-        g_xAngle = (g_xAngle + ANGLE_STEP) % 360;
-        break;
+            pitch = Math.min(pitch + g_angleDelta, 179.9);
 
-    case 38: // Down arrow key -> the negative rotation of arm1 around the y-axis
+            break;
 
-        g_xAngle = (g_xAngle - ANGLE_STEP) % 360;
-        break;
+        case 38: // Down arrow key -> look down
 
-    case 39: // Right arrow key -> the positive rotation of arm1 around the y-axis
+            pitch = Math.max(pitch - g_angleDelta, 0.1);
 
-        g_yAngle = (g_yAngle + ANGLE_STEP) % 360;
-        break;
+            break;
 
-    case 37: // Left arrow key -> the negative rotation of arm1 around the y-axis
+        case 39: // Right arrow key -> look right
 
-        g_yAngle = (g_yAngle - ANGLE_STEP) % 360;
-        break;
+            yaw = (yaw - g_angleDelta) % 360;
 
-    case 87:  // w key -> move the eye forward
+            break;
 
-        g_eyeZ += EYE_STEP;
-        break;
+        case 37: // Left arrow key -> look left
 
-    case 65:  // a key -> move the eye left
+            yaw = (yaw + g_angleDelta) % 360;
 
-        g_eyeX -= EYE_STEP;
-        break;
+            break;
 
-    case 83:  // s key -> move the eye backwards
+        case 87:  // w key -> move the eye forwards
 
-        g_eyeZ -= EYE_STEP;
-        break;
+            g_eyeX += STEP_SIZE * Math.sin(yaw * Math.PI / 180);
+            g_eyeZ += STEP_SIZE * Math.cos(yaw * Math.PI / 180);
 
-    case 68:  // d key -> move the eye left
+            break;
 
-        g_eyeX += EYE_STEP;
-        break;
+        case 65:  // a key -> move the eye left
 
-    case 16:  // shift key -> move the eye down
+            g_eyeX += STEP_SIZE * Math.cos(yaw * Math.PI / 180);
+            g_eyeZ -= STEP_SIZE * Math.sin(yaw * Math.PI / 180);
 
-        g_eyeY -= EYE_STEP;
-        break;
+            break;
 
-    case 32:  // space key -> move the eye up
+        case 83:  // s key -> move the eye backwards
 
-        g_eyeY += EYE_STEP;
-        break;
+            g_eyeX -= STEP_SIZE * Math.sin((yaw) * Math.PI / 180);
+            g_eyeZ -= STEP_SIZE * Math.cos((yaw) * Math.PI / 180);
 
-    default: return; // Skip drawing at no effective action
+            break;
 
-  }
+        case 68:  // d key -> move the eye left
 
-  // Draw the scene
-  draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler);
+            g_eyeX -= STEP_SIZE * Math.cos(yaw * Math.PI / 180);
+            g_eyeZ += STEP_SIZE * Math.sin(yaw * Math.PI / 180);
+
+            break;
+
+    }
+
+    g_lookAtX = g_eyeX + Math.sin(yaw * Math.PI / 180) * Math.sin(pitch * Math.PI / 180);  // The x co-ordinate the eye is looking at
+    g_lookAtY = g_eyeY + Math.cos(pitch * Math.PI / 180);  // The y co-ordinate the eye is looking at
+    g_lookAtZ = g_eyeZ + Math.cos(yaw * Math.PI / 180) * Math.sin(pitch * Math.PI / 180);  // The z co-ordinate the eye is looking at
+
+    // console.log(g_eyeX, g_eyeY, g_eyeZ, g_lookAtX, g_lookAtY, g_lookAtZ);
 
 }
 
 
-// Okay: draw is being called, but nothing is being rendered as of yet. I'll check that
-// my scale and perspectives are in the right place.
-
 function draw() {
 
-    // console.log("Draw called");
-
-    if (INIT_TEXTURE_COUNT < 2) {   // Don't do anything until texures have been loaded
+    if (INIT_TEXTURE_COUNT < 2) {   // Don't do anything until textures have been loaded
 
         return;
 
@@ -166,17 +173,13 @@ function draw() {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    viewMatrix.setLookAt(g_eyeX, g_eyeY, g_eyeZ, 0, 0, 0, 0, 1, 0);
+    viewMatrix.setLookAt(g_eyeX, g_eyeY, g_eyeZ, g_lookAtX, g_lookAtY, g_lookAtZ, 0, 1, 0);
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
     draw_table(1, 1, 1);
 
 }
 
-// Let's try camera movement first.
-
-// Nothing for size, though!
-// So that'll be a bit harder to shoe-horn into my existing framework.
 
 function draw_box(n, texture) {
 
