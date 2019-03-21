@@ -1,4 +1,4 @@
-function createLeftTrapezoid(width, height, depth, x, y, z, color) {
+function createLeftTrapezoid(width, height, depth, x, y, z, color, texture) {
 
     // Create a trapezoid
     //    v3----- v4
@@ -135,7 +135,7 @@ function createRightTrapezoid(width, height, depth, x, y, z, color) {
 
 }
 
-function createCuboid(width, height, depth, x, y, z, color) {
+function createCuboid(width, height, depth, x, y, z, color, texture) {
 
     // Create a cube
     //    v4----- v5
@@ -200,7 +200,8 @@ function createCuboid(width, height, depth, x, y, z, color) {
         colors: colors,
         normals: normals,
         textureCoordinates: textureCoordinates,
-        indices: indices
+        indices: indices,
+        texture: texture
     }
 
 }

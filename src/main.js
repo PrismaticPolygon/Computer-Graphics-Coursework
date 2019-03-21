@@ -1,98 +1,30 @@
-const VSHADER_SOURCE = `
-
-    attribute vec4 a_Position;
-    attribute vec4 a_Color;
-    attribute vec4 a_Normal;
-    
-    attribute vec2 a_TexCoords;
-    
-    uniform mat4 u_MvpMatrix;
-    uniform mat4 u_ModelMatrix;
-    uniform mat4 u_NormalMatrix;
-    
-    varying vec4 v_Color;
-    
-    varying vec3 v_Normal;
-    varying vec3 v_Position;
-    
-    varying vec2 v_TexCoords;
-    
-    void main() {
-    
-        gl_Position = u_MvpMatrix * a_Position;
-       
-        v_Position = vec3(u_ModelMatrix * a_Position);
-        v_Normal = normalize(vec3(u_NormalMatrix * a_Normal));
-        v_Color = a_Color;
-        v_TexCoords = a_TexCoords;
-        
-    }
-    
-`;
-
-const FSHADER_SOURCE = `
-
-    precision mediump float;
-    
-    uniform bool u_UseTextures;
-    uniform vec3 u_LightColor;
-    uniform vec3 u_LightPosition;
-    uniform vec3 u_AmbientLight;
-    uniform sampler2D u_Sampler; 
-    
-    varying vec4 v_Color;
-    varying vec3 v_Normal;
-    varying vec3 v_Position;
-    varying vec2 v_TexCoords;
-    
-    void main() {
-    
-        vec3 normal = normalize(v_Normal);
-        vec3 lightDirection = normalize(u_LightPosition - v_Position);
-        float nDotL = max(dot(lightDirection, normal), 0.0);
-        vec3 diffuse;
-        vec3 ambient;
-    
-        if (u_UseTextures) {
-        
-            vec4 TexColor = texture2D(u_Sampler, v_TexCoords);
-            diffuse = u_LightColor * TexColor.rgb * nDotL * 1.2;
-            ambient = u_AmbientLight * TexColor.rgb * nDotL * 1.2;
-        
-        } else {
-       
-            diffuse = u_LightColor * v_Color.rgb * nDotL;
-            ambient = u_AmbientLight * v_Color.rgb;
-        
-        } 
-    
-        gl_FragColor = vec4(diffuse + ambient, v_Color.a);
-        
-    }
-`;
-
 // Anything that requires syncing CPU and GPU sides is very slow: avoid doing so in main rendering loop.
 // Also include WebGL getter calls. Fewer, larger, draw operations will improve performance.
 // Do as much as possible in the vertex shader.
 
-let modelMatrix = new Matrix4(); // The model matrix
+let modelMatrix = new Matrix4(); // The model
+let viewMatrix = new Matrix4();
+let projMatrix = new Matrix4();
 let normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
-let mvpMatrix = new Matrix4();
-let texture;
+let mvpMatrix = new Matrix4();  // Model view projection matrix
+
+// Add multiple lights
 
 let textures = {
 
-    white_wood: {
+    WOOD: {
         texture: null,
         src: white_wood
     },
 
-    brick: {
+    BRICK: {
         texture: null,
         src: brick
     }
 
 };
+
+//
 
 // Far better to. How will I know which texture is bound to which without a key?
 // Return the specific ID, associate each shape with a "thing", and then get the right texture.
@@ -131,6 +63,8 @@ function main() {
     // Get the storage locations of uniform attributes
     let u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
     let u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
+    let u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
+    let u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
     let u_MvpMatrix = gl.getUniformLocation(gl.program, "u_MvpMatrix");
     let u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
     let u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
@@ -155,7 +89,7 @@ function main() {
         normalMatrix.setInverseOf(modelMatrix);
         normalMatrix.transpose();
 
-        gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+        // gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
         gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
         gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
@@ -258,6 +192,7 @@ function initObjectBuffers(gl, object) {
 
 }
 
+
 const WHITE = [1.0, 1.0, 1.0];
 const RED = [1.0, 0.0, 0.0];
 
@@ -265,7 +200,7 @@ let objects = {
 
     structure: createCuboid(4, 6, 4, -2, -3, -2),
 
-    frontDoorFrame: createCuboid(0.8, 2.55, 0.001, -1.8, -3, 2, WHITE),
+    frontDoorFrame: createCuboid(0.8, 2.55, 0.001, -1.8, -3, 2, WHITE, te.WOOD),
     frontDoor: createCuboid(0.7, 1.8, 0.005, -1.75, -2.75, 2, RED),
     frontDoorWindow: createCuboid(0.7, 0.4, 0.005, -1.75, -0.9, 2),
     frontDoorLintel: createCuboid(1, 0.2, 0.005, -1.9, -0.45, 2, WHITE),
@@ -299,6 +234,9 @@ let objects = {
 
 };
 
+//Pass in gl, u_ModelMatrix, u_NormalMatrix, n
+// gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements)
+// gl.normalMatrix.setInverse
 
 function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_Sampler) {
 
@@ -338,8 +276,6 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_S
 
         }
 
-        // I have to reset the perspective.
-
         mvpMatrix.setPerspective(30, 1, 1, 100);
 
         // It's not lookAt. We want to move the camera itself.
@@ -351,8 +287,8 @@ function draw(gl, u_ModelMatrix, u_NormalMatrix, u_MvpMatrix, u_UseTextures, u_S
         normalMatrix.setInverseOf(modelMatrix);
         normalMatrix.transpose();
 
-        gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-        gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);
+        gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);    //This line
+        gl.uniformMatrix4fv(u_MvpMatrix, false, mvpMatrix.elements);    //
         gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
 
         gl.activeTexture(gl.TEXTURE0);
