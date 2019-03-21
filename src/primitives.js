@@ -135,6 +135,53 @@ function createRightTrapezoid(width, height, depth, x, y, z, color) {
 
 }
 
+function initPlaneVertexBuffers(gl, r, g, b, a=1) {
+    // A single square in the x-y plane. Used to reduce vertices where possible
+
+    if (!r) r = Math.random();
+    if (!g) g = Math.random();
+    if (!b) b = Math.random();
+
+    // Coordinates, colors, normals and indices; line 1 - triangle 1, line 2 - triangle 2
+    let vertices = new Float32Array([
+        0.5, 0.5, 0, -0.5, 0.5, 0, -0.5, -0.5, 0,
+        -0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0
+    ]);
+
+    let colors = new Float32Array([
+        r, g, b, a, r, g, b, a, r, g, b, a,
+        r, g, b, a, r, g, b, a, r, g, b, a
+    ]);
+
+    let normal = new Float32Array([
+        0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0
+    ]);
+
+    let indices = new Uint8Array([
+        0, 1, 2,
+        0, 2, 3
+    ]);
+
+    // Write the vertex property to buffers (coordinates, colors and normals)
+    if (!initArrayBuffer(gl, 'a_Position', vertices, 3, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_Color', colors, 4, gl.FLOAT)) return -1;
+    if (!initArrayBuffer(gl, 'a_Normal', normal, 3, gl.FLOAT)) return -1;
+
+    // Write the indices to the buffer object
+    let indexBuffer = gl.createBuffer();
+
+    if (!indexBuffer) {
+        console.log('Failed to create the buffer object');
+        return false;
+    }
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+    return indices.length;
+}
+
 function initCubeVertexBuffers(gl, r, g, b, a=1) {
 
     if (!r) r = Math.random();
