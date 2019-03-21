@@ -18,7 +18,9 @@ let g_atDelta = 0.2;    // The movement delta of the eye
 let g_lookAtX = 0;  // The x co-ordinate the eye is looking at
 let g_lookAtY = 0;  // The y co-ordinate the eye is looking at
 let g_lookAtZ = 0;  // The z co-ordinate the eye is looking at
-let g_lookAtDelta = 5;  // The increments of rotation angle (degrees)
+let g_lookAtDelta = 5;  // The rotation delta of the
+
+//TODO: figure out it we can remove yaw and pith
 
 let yaw = 0;    // (+left, -right)
 let pitch = 0;  // (0 up, 180 down)
@@ -28,9 +30,7 @@ let canvas;
 let gl;
 let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_Sampler;
 
-
 let matrixStack = [];
-
 
 function pushMatrix(m) {
 
@@ -169,7 +169,6 @@ function keydown(ev) {
 
 }
 
-
 function draw() {
 
     if (INIT_TEXTURE_COUNT < 2) {   // Don't do anything until textures have been loaded
@@ -190,34 +189,22 @@ function draw() {
 
 function draw_box(n, texture) {
 
-    // console.log("Draw box called");
-    //
     // Texture must be an integer i such that gl.TEXTUREi is used
 
     if (texture != null){
 
         gl.uniform1i(u_Sampler, texture);
-
         gl.uniform1i(u_UseTextures, 1);
 
     }
 
-
-
     pushMatrix(modelMatrix);
 
-
-
-    // Pass the model matrix to the uniform variable
-
-    gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
-
-
+    gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements); // Pass the model matrix to the uniform variable
 
     // Calculate the normal transformation matrix and pass it to u_NormalMatrix
 
     normalMatrix.setInverseOf(modelMatrix);
-
     normalMatrix.transpose();
 
     gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
@@ -236,23 +223,13 @@ function draw_box(n, texture) {
 
     }
 
-
-
 }
 
 function draw_table(x, y, z) {
 
-    // console.log("Draw table called");
-
-    // Form table - x, y, z gives floor point under centre of table.
-
-    // Total size - 0.6*0.74*0.6
-
     pushMatrix(modelMatrix);
 
-    modelMatrix.translate(x,y,z); // Translate to floor below centre of table.
-
-    // Model the table legs and supports
+    modelMatrix.translate(x, y, z); // Translate to floor below centre of table.
 
     var n = initCubeVertexBuffers(gl, 44/255, 53/255, 57/255);
 
@@ -294,8 +271,6 @@ function draw_table(x, y, z) {
 
         modelMatrix = popMatrix();
 
-
-
         modelMatrix = popMatrix(); // back to general translation
 
     }
@@ -320,7 +295,7 @@ function draw_table(x, y, z) {
 
     modelMatrix.scale(0.6, 0.04, 0.6);
 
-    draw_box(n);
+    draw_box(n, 1);
 
     modelMatrix = popMatrix(); // Undo general transform.
 
