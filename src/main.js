@@ -6,7 +6,7 @@ let normalMatrix = new Matrix4();  // Coordinate transformation matrix for norma
 
 let INIT_TEXTURE_COUNT = 0;
 
-let g_atX = -2;    // The x co-ordinate of the eye
+let g_atX = 0;    // The x co-ordinate of the eye
 let g_atY = 2;    // The y co-ordinate of the eye
 let g_atZ = 6;    // The z co-ordinate of the eye
 
@@ -177,11 +177,9 @@ function draw() {
     viewMatrix.setLookAt(g_atX, g_atY, g_atZ, g_lookAtX, g_lookAtY, g_lookAtZ, 0, 1, 0);
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
-    // That's just because my door is wrong, lol.
-
     draw_floor();
     draw_front_door(-2, 0, 2);
-    draw_front_window(1.8, 1.2, 0.2);
+    draw_front_window(-0.2, 0, 2);
 
 }
 
@@ -208,18 +206,66 @@ function draw_floor() {
 
 }
 
+
+function draw_window(x, y, z, width, height, alpha) {
+
+    // Forms a window frame with transparent pane (alpha) - centre of pane at x, y, z
+    // Total size - width+0.09 * height+0.09 * 0.1
+
+    pushMatrix(modelMatrix);
+    modelMatrix.translate(x,y,z);
+
+    // Draw frame
+    let n = initCubeVertexBuffers(gl, 0, 0, 0);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    for (let i=0; i<=1; i++){
+
+        let sign = Math.pow(-1,i);
+        // Top/bottom
+        pushMatrix(modelMatrix);
+        modelMatrix.translate(0,sign*height/2,0);
+        modelMatrix.rotate(90,0,0,1);
+        modelMatrix.scale(0.045,width+0.045,0.1);
+        draw_cube(n, 1);
+        modelMatrix = popMatrix();
+
+        // Left/right
+        pushMatrix(modelMatrix);
+        modelMatrix.translate(sign*width/2,0,0);
+        modelMatrix.scale(0.045,height+0.045,0.1);
+        draw_cube(n, 1);
+        modelMatrix = popMatrix();
+    }
+
+    // Draw glass - transparent
+    n = initPlaneVertexBuffers(gl, 1, 1, 1, alpha);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    modelMatrix.scale(width, height, 1);
+    draw_plane(n);
+
+    modelMatrix = popMatrix();
+
+}
+
+// Yeah, let's make it a frame... method.
+
 function draw_front_window(x, y, z) {
 
     let middle_width = 1.2;
     let middle_height = 1.2;
-    let sill_height = 0.2;
+    // let sill_height = 0.2;
     let depth = 0.4;
-    let sill_depth = 0.5;
+    let side_size = Math.sqrt(Math.pow(depth, 2) + Math.pow(depth, 2));
+    // let sill_depth = 0.5;
     let bottom_height = 0.7;
-
-    pushMatrix(modelMatrix);
-
-    modelMatrix.translate(x, y, z);
 
     let n = initCubeVertexBuffers(gl, 0.4, 0.4, 0.4);
 
@@ -230,20 +276,150 @@ function draw_front_window(x, y, z) {
 
     }
 
-    //Maybe I should add frames to my windows... I think that that would simplify things, here and for the door.
-
-    //bottom centre
     pushMatrix(modelMatrix);
 
-    modelMatrix.translate(0, - middle_height / 2 - sill_height - bottom_height / 2, 0);
+    modelMatrix.translate(x, y, z);
+
+    //bottom centre
+
+    modelMatrix.translate(depth + middle_width / 2, bottom_height / 2, depth / 2);
     modelMatrix.scale(middle_width, bottom_height, 0.4);
 
     draw_cube(n, 0);
 
     modelMatrix = popMatrix();
+
+    // bottom left
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(depth / 2, bottom_height / 2, 2);
+    modelMatrix.rotate(45, 0, 1, 0);
+    modelMatrix.scale(side_size, bottom_height, side_size);
+
+    draw_cube(n, 0);
+
     modelMatrix = popMatrix();
+
+    //bottom right
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(0.5 * depth + middle_width, bottom_height / 2, 2);
+    modelMatrix.rotate(-45, 0, 1, 0);
+    modelMatrix.scale(side_size, bottom_height, side_size);
+
+    draw_cube(n, 0);
+
+    modelMatrix = popMatrix();
+
+    //window centre
+    draw_window(depth / 2 + middle_width / 2, middle_height / 2 + bottom_height, 2 + depth - 0.05, middle_width, middle_height, 0.4);
+
+    pushMatrix(modelMatrix);
+
+    // Window left
+    n = initCubeVertexBuffers(gl, 0, 0, 0);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    modelMatrix.translate(0, middle_height / 2 + bottom_height, 2 + depth / 2 - 0.05);
+    modelMatrix.rotate(-45, 0, 1, 0);
+
+    for (let i = 0; i <= 1; i++){
+
+        let sign = Math.pow(-1, i);
+        // Top/bottom
+        pushMatrix(modelMatrix);
+        modelMatrix.translate(0,sign * middle_height/2,0);
+        modelMatrix.rotate(90,0,0,1);
+        modelMatrix.scale(0.045,side_size+0.045,0.1);
+        draw_cube(n, 1);
+        modelMatrix = popMatrix();
+
+        // Left/right
+        pushMatrix(modelMatrix);
+        modelMatrix.translate(sign*side_size/2,0,0);
+        modelMatrix.scale(0.045,middle_height+0.045,0.1);
+        draw_cube(n, 1);
+        modelMatrix = popMatrix();
+    }
+
+    // Draw glass - transparent
+    n = initPlaneVertexBuffers(gl, 1, 1, 1, 0.4);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    modelMatrix.scale(side_size, middle_height, 1);
+    draw_plane(n);
+
+    modelMatrix = popMatrix();
+
+    pushMatrix(modelMatrix);
+
+    // Window right
+    n = initCubeVertexBuffers(gl, 0, 0, 0);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    modelMatrix.translate(depth + middle_width, middle_height / 2 + bottom_height, 2 + depth / 2 - 0.05);
+    modelMatrix.rotate(45, 0, 1, 0);
+
+    for (let i = 0; i <= 1; i++){
+
+        let sign = Math.pow(-1, i);
+        // Top/bottom
+        pushMatrix(modelMatrix);
+        modelMatrix.translate(0,sign * middle_height/2,0);
+        modelMatrix.rotate(90,0,0,1);
+        modelMatrix.scale(0.045,side_size+0.045,0.1);
+        draw_cube(n, 1);
+        modelMatrix = popMatrix();
+
+        // Left/right
+        pushMatrix(modelMatrix);
+        modelMatrix.translate(sign*side_size/2,0,0);
+        modelMatrix.scale(0.045,middle_height+0.045,0.1);
+        draw_cube(n, 1);
+        modelMatrix = popMatrix();
+    }
+
+    // Draw glass - transparent
+    n = initPlaneVertexBuffers(gl, 1, 1, 1, 0.4);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    modelMatrix.scale(side_size, middle_height, 1);
+    draw_plane(n);
+
+    modelMatrix = popMatrix();
+
+    //
+    // pushMatrix(modelMatrix);
+    //
+    // n = initPlaneVertexBuffers(gl, 1, 1, 1, 0.25);
+    //
+    // if (n < 0) {
+    //
+    //     console.log('Failed to set the vertex information');
+    //     return;
+    //
+    // }
+    //
+    // // I'll be doing little better than guessing. I'll leave this for now, until I can figure out what the problem is.
+    //
+    // modelMatrix.translate(depth + middle_width / 2, bottom_height / 2, depth / 2);
+    // modelMatrix.scale(middle_width, middle_height, 0.4);
+    // draw_plane(n);
+    //
     // modelMatrix = popMatrix();
-    // So I'll create and rotate, and scale a cuboid so that it looks like a trapezoid.
+
 
 }
 
