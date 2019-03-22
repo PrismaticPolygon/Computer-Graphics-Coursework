@@ -16,6 +16,12 @@ const LIGHT_COLORS = [
 ];
 
 let INIT_TEXTURE_COUNT = 0;
+let USE_TEXTURES = false;
+let USE_STREETLIGHTS = true; // Now THAT is not going to be fun. How tf will I update the vertex shader?
+// Oh, just splice out the appropriate things, I guess.
+// So that's really quite simple.
+
+// I'll have to refactor my keypress implementation though...
 
 let g_atX = 0;    // The x co-ordinate of the eye
 let g_atY = 3;    // The y co-ordinate of the eye
@@ -26,11 +32,12 @@ let g_lookAtDelta = 0.05;  // The rotation delta of the angle the eye is looking
 let yaw = 180;    // (+left, -right)
 let pitch = 90;  // (0 up, 180 down)
 
+// My windows are continously re-rendering. What method are they using?
 
 let prev = new Date().getTime();
-let canvas;
+let canvas, hud;
 let gl;
-let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_Sampler;
+let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_Sampler, u_LightColor, u_LightPosition, u_AmbientLight;
 let keys = [];
 
 let matrixStack = [];
@@ -47,9 +54,18 @@ function popMatrix() {
 
 }
 
+// 20 marks for textures
+// 20 marks for lighting and cameras
+// 20 marks for my own 3D models
+// 20 marks for one building, a landscape around it, and some meaningful objects enriching the surroundings.
+// 20 marks for constructing movable models. Nice!
+
+// So the priority now must be on animation.
+
 function main() {
 
     canvas = document.getElementById('webgl'); // Retrieve <canvas> element
+    hud = document.getElementById('hud'); // Retrieve HUD <canvas> element
     gl = getWebGLContext(canvas); // Get the webGL context
 
     initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
@@ -67,39 +83,38 @@ function main() {
     u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
     u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
     u_ProjMatrix = gl.getUniformLocation(gl.program, 'u_ProjMatrix');
-
-    let u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
-    let u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
-    let u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
-
-    // Perspective and lighting
-    {
-
-        projMatrix.setPerspective(60, canvas.width / canvas.height, 0.1, 20);
-        gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
-
-        gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
-
-        // Yeah, definitely this line. Hm.
-
-        gl.uniform3fv(u_LightColor,LIGHT_COLORS);
-        gl.uniform3fv(u_LightPosition, LIGHT_POSITIONS);
-
-    }
-
+    u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
+    u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
+    u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
     u_UseTextures = gl.getUniformLocation(gl.program, 'u_UseTextures');
     u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');
 
+    // Set up the projection matrix
+    projMatrix.setPerspective(60, canvas.width / canvas.height, 0.1, 20);
+    gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
+
+    // Set up lighting
+    gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+    gl.uniform3fv(u_LightColor,LIGHT_COLORS);
+    gl.uniform3fv(u_LightPosition, LIGHT_POSITIONS);
+
+    // Initialise textures
     initTextures(gl, u_Sampler);
 
+    // Add key handlers
     window.addEventListener("keydown", (ev) => keys.push(ev.key));
     window.addEventListener("keyup", (ev) => keys.splice(keys.indexOf(ev.key)));
 
+    // Start rendering loops
     tick();
 
 }
 
+// Stop getting distracted! Do the car
+
 function handleKeys() {
+
+    // I could then remove the key. Kinda messy, though.
 
     for (let key of keys) {
 
@@ -176,6 +191,8 @@ function handleKeys() {
 
 // Oh: draw them as planes to save vertices! Doesn't that make sense?
 // Of course, if I'm not moving, it's not laggy. Remember: GPU / CPU comms is the bottleneck.
+
+// Cause I only have to update the view matrix if I actually move, right?
 
 function draw() {
 
@@ -274,9 +291,8 @@ function draw_streetlights() {
         modelMatrix = popMatrix();
 
     }
-}
 
-// Let's add it as another light source, first
+}
 
 function draw_structure(x, y, z) {
 
@@ -781,6 +797,7 @@ function tick() {
     handleKeys();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     draw();
+    draw_HUD();
 
     requestAnimationFrame(tick);
 
@@ -841,14 +858,7 @@ function createTexture(gl, name, id){
 
 }
 
-function initTextures(gl, u_Sampler) {
-
-    if (!u_Sampler) {
-
-        console.log('Failed to get the storage location of u_Sampler');
-        return false;
-
-    }
+function initTextures() {
 
     // Setup texture mappings
     createTexture(gl, '../textures/bricks.jpg', gl.TEXTURE0);
@@ -861,11 +871,56 @@ function initTextures(gl, u_Sampler) {
 
 }
 
+function draw_HUD() {
+
+    let ctx = hud.getContext("2d");
+
+    ctx.clearRect(0, 0, 500, 500); // Clear <hud>
+
+    ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = 'rgba(255, 255, 255, 1)'; // Set white text
+    ctx.fillText("x = " + g_atX.toFixed(2) + ", " + "y = " + g_atY.toFixed(2) + ", " + "z = " + g_atZ.toFixed(2), 5, 15);
+    ctx.fillText('yaw = ' + yaw.toFixed(2) + ", " + "pitch = " + pitch.toFixed(2), 5, 30);
+
+    // Add a texture toggle
+
+    // ctx.fillText('w/s', 10, 35);
+    // ctx.fillText('a/d', 10, 50);
+    // ctx.fillText('q/e', 10, 65);
+    // ctx.fillText('Arrow keys', 10, 80);
+    // ctx.fillText('1, 2, 3', 10, 95);
+    // ctx.fillText('4, 5, 6', 10, 110);
+    // ctx.fillText('SHIFT  4, 5, 6', 10, 125);
+    // ctx.fillText('7, 8, 9', 10, 140);
+    // ctx.fillText('SHIFT  7, 8, 9', 10, 155);
+    // ctx.fillText('p/o', 10, 170);
+    // ctx.fillText('0', 10, 185);
+    // ctx.fillText('ENTER', 10, 200);
+
+    // I can write in co-ordinates. Nice.
+    //
+    // ctx.font = '11px Arial';
+    // ctx.fillText('Move forwards/ backwards', 40, 35);
+    // ctx.fillText('Move left/ right', 40, 50);
+    // ctx.fillText('Move up/ down', 40, 65);
+    // ctx.fillText('Look around', 80, 80);
+    // ctx.fillText('Trigger back/ centre/ front lights', 50, 95);
+    // ctx.fillText('Switch left/ centre/ right boards', 50, 110);
+    // ctx.fillText('Reverse board motion', 90, 125);
+    // ctx.fillText('Pull back/ centre/ front blind down', 50, 140);
+    // ctx.fillText('Pull back/ centre/ front blind up', 90, 155);
+    // ctx.fillText('Raise/ lower sun altitude', 40, 170);
+    // ctx.fillText('Toggle textures', 25, 185);
+    // ctx.fillText('Toggle instructions', 55, 200);
+
+
+}
+
 function draw_cube(n, texture) {
 
     // Texture must be an integer i such that gl.TEXTUREi is used
 
-    if (texture != null){
+    if (texture != null && USE_TEXTURES) {
 
         gl.uniform1i(u_Sampler, texture);
         gl.uniform1i(u_UseTextures, 1);
@@ -891,7 +946,7 @@ function draw_cube(n, texture) {
 
     // Turn off texture if used
 
-    if (texture != null){
+    if (texture != null) {
 
         gl.uniform1i(u_UseTextures, 0);
 
