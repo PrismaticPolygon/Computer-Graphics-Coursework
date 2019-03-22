@@ -38,8 +38,8 @@ const FSHADER_SOURCE = `
     precision mediump float;
     
     uniform bool u_UseTextures;
-    uniform vec3 u_LightColor[3];
-    uniform vec3 u_LightPosition[3];
+    uniform vec3 u_LightColor[4];
+    uniform vec3 u_LightPosition[4];
     uniform vec3 u_AmbientLight;
     uniform sampler2D u_Sampler; 
     

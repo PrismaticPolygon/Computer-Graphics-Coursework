@@ -17,12 +17,16 @@ let projMatrix = new Matrix4(); // Projection matrix
 let normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
 
 const LIGHT_POSITIONS = [
-    -2.5, 3, 4.2, // Left streetlight
-    2.5, 3, 4.2,  // Right streetlight
-    -5, 12, 5   // Sun
+    -2.5, 4.2, 4, // Left streetlight
+    2.5, 4.2, 4,  // Right streetlight
+    4, 4.2, -6,  // Back streetlight
+    0, 20, 0   // Sun
 ];
 
+// Maybe the sun shouldn't attenuate.
+
 const LIGHT_COLORS = [
+    255/255, 241/255, 224/255,
     255/255, 241/255, 224/255,
     255/255, 241/255, 224/255,
     253/255, 184/255, 19/255
@@ -36,11 +40,11 @@ let USE_STREETLIGHTS = true;
 
 let g_atX = 0;    // The x co-ordinate of the eye
 let g_atY = 3;    // The y co-ordinate of the eye
-let g_atZ = 15;    // The z co-ordinate of the eye
+let g_atZ = -15;    // The z co-ordinate of the eye
 
 let g_atDelta = 0.005;    // The movement delta of the eye
 let g_lookAtDelta = 0.05;  // The rotation delta of the angle the eye is looking at (degrees)
-let yaw = 180;    // (+left, -right)
+let yaw = 0;    // (+left, -right)
 let pitch = 90;  // (0 up, 180 down)
 
 // My windows are continously re-rendering. What method are they using?
@@ -146,7 +150,7 @@ function handleDiscreteKeys(key) {
 
             } else {
 
-                for (let i = 0; i < 6; i++) {
+                for (let i = 0; i < 9; i++) {
 
                     light_colors[i] = 0;
 
@@ -260,10 +264,19 @@ function draw() {
     draw_front_door(-2, 0, 2);
     draw_front_window(-0.2, 0, 2);
     draw_nathaniel_window(0.2, 3.45, 2);
-    draw_structure(-2.5, 0, 2);
+    draw_structure(-2.5, 0, 2, 5.5, 4, 5);
+
+    draw_structure(-2.5, 0, -2, 2, 3, 2);
+    draw_nathaniel_window(0.6, 3.45, -2.1);
+    draw_nathaniel_window(-1.8, 3.45, -2.1);
+    draw_nathaniel_window(0.6, 0.75, -2.1);
+
+
     draw_car();
 
     draw_streetlights();
+
+    // Yeah, I might actually add a streetlight back here for some lighting.
 
 }
 
@@ -360,6 +373,17 @@ function draw_streetlights() {
 
         modelMatrix = popMatrix();
 
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(4, 0, -6);
+
+        modelMatrix.translate(column_size / 2, column_height / 2, column_size / 2);
+        modelMatrix.scale(column_size, column_height, column_size);
+
+        draw_cube(n);
+
+        modelMatrix = popMatrix();
+
     }
 
     // I don't update it globally, alas.
@@ -400,16 +424,24 @@ function draw_streetlights() {
 
         modelMatrix = popMatrix();
 
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(4, 0, -6);
+
+        modelMatrix.translate(column_size / 2, column_height + lamp_height / 2, column_size / 2);
+        modelMatrix.scale(lamp_size, lamp_height, lamp_size);
+
+        draw_cube(n);
+
+        modelMatrix = popMatrix();
+
 
     }
 
 }
 
-function draw_structure(x, y, z) {
+function draw_structure(x, y, z, height, depth, width) {
 
-    let height = 5.5;
-    let depth = 4;
-    let width = 5;
     let roof_length = depth / 2;
     let roof_height = 1;
     let roof_slope = Math.sqrt(Math.pow(roof_height, 2) + Math.pow(roof_length, 2));
@@ -428,6 +460,8 @@ function draw_structure(x, y, z) {
     modelMatrix.scale(width, height, depth);
 
     draw_cube(n, 0);
+
+    // Let's move the sun!
 
     modelMatrix = popMatrix();
 
