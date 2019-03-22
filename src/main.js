@@ -1,3 +1,16 @@
+// 20 marks for textures
+// 20 marks for lighting and cameras
+// 20 marks for my own 3D models
+// 20 marks for one building, a landscape around it, and some meaningful objects enriching the surroundings.
+// 20 marks for constructing movable models. Nice!
+
+// Oh: draw them as planes to save vertices! Doesn't that make sense?
+// Of course, if I'm not moving, it's not laggy. Remember: GPU / CPU comms is the bottleneck.
+
+// Cause I only have to update the view matrix if I actually move, right?
+
+// So the priority now must be on animation.
+
 let modelMatrix = new Matrix4(); // Model matrix
 let viewMatrix = new Matrix4(); // View matrix
 let projMatrix = new Matrix4(); // Projection matrix
@@ -15,15 +28,16 @@ const LIGHT_COLORS = [
     253/255, 184/255, 19/255
 ];
 
+// Okay! Time for... a car. It's like a continuous translation matrix, I imagine. For each tick, we animate the car
+// use cur and prev to adjust the movement, and bounding it appropriately.
+
 let INIT_TEXTURE_COUNT = 0;
 let USE_TEXTURES = false;
-let USE_STREETLIGHTS = false;
-
-// I'll have to refactor my keypress implementation though...
+let USE_STREETLIGHTS = true;
 
 let g_atX = 0;    // The x co-ordinate of the eye
 let g_atY = 3;    // The y co-ordinate of the eye
-let g_atZ = 11;    // The z co-ordinate of the eye
+let g_atZ = 15;    // The z co-ordinate of the eye
 
 let g_atDelta = 0.005;    // The movement delta of the eye
 let g_lookAtDelta = 0.05;  // The rotation delta of the angle the eye is looking at (degrees)
@@ -32,7 +46,6 @@ let pitch = 90;  // (0 up, 180 down)
 
 // My windows are continously re-rendering. What method are they using?
 
-let prev = new Date().getTime();
 let canvas, hud;
 let gl;
 let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_Sampler, u_LightColor, u_LightPosition, u_AmbientLight;
@@ -51,14 +64,6 @@ function popMatrix() {
     return matrixStack.pop();
 
 }
-
-// 20 marks for textures
-// 20 marks for lighting and cameras
-// 20 marks for my own 3D models
-// 20 marks for one building, a landscape around it, and some meaningful objects enriching the surroundings.
-// 20 marks for constructing movable models. Nice!
-
-// So the priority now must be on animation.
 
 function main() {
 
@@ -157,8 +162,6 @@ function handleDiscreteKeys(key) {
 
 }
 
-
-
 function handleContinuousKeys() {
 
     // I could then remove the key. Kinda messy, though.
@@ -236,11 +239,6 @@ function handleContinuousKeys() {
 
 }
 
-// Oh: draw them as planes to save vertices! Doesn't that make sense?
-// Of course, if I'm not moving, it's not laggy. Remember: GPU / CPU comms is the bottleneck.
-
-// Cause I only have to update the view matrix if I actually move, right?
-
 function draw() {
 
     if (INIT_TEXTURE_COUNT < 4) {   // Don't do anything until textures have been loaded
@@ -263,8 +261,47 @@ function draw() {
     draw_front_window(-0.2, 0, 2);
     draw_nathaniel_window(0.2, 3.45, 2);
     draw_structure(-2.5, 0, 2);
+    draw_car();
 
     draw_streetlights();
+
+}
+
+// Yeah, plus frame_time * direction * some factor.
+
+let car_x = 0, car_y = 0, car_z = 5;
+
+function draw_car() {
+
+    let car_length = 2;
+    let car_height = 1;
+    let car_width = 1;
+    let n = initCubeVertexBuffers(gl, 0.4, 0.4, 0.4);
+
+    if (n < 0) {
+
+        console.log('Failed to set the vertex information');
+        return;
+
+    }
+
+    car_x += delta;
+    // Perhaps prev is negative?
+
+    if (car_x > 8) {
+
+        car_x = -8;
+
+    }
+
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(car_x, car_y, car_z);
+    modelMatrix.scale(car_length, car_height, car_width);
+
+    draw_cube(n, 0);
+
+    modelMatrix = popMatrix();
 
 }
 
@@ -835,18 +872,23 @@ function draw_front_door(x, y, z) {
 
 }
 
-function tick() {
+let then = 0;
+let delta = 0;
 
-    let cur = new Date().getTime();
-    prev = (cur - prev);
-    prev = cur;
+// And we use delta frame-indep
+
+function tick(now) {
+
+    now *= 0.001;
+    delta = now - then;
+    then = now;
 
     handleContinuousKeys();
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     draw();
     draw_HUD();
 
-    requestAnimationFrame(tick);
+    requestAnimationFrame(tick)
 
 }
 
@@ -922,44 +964,14 @@ function draw_HUD() {
 
     let ctx = hud.getContext("2d");
 
-    ctx.clearRect(0, 0, 500, 500); // Clear <hud>
+    ctx.clearRect(0, 0, 500, 500); // Clear HUD <canvas> element
 
     ctx.font = 'bold 12px Arial';
     ctx.fillStyle = 'rgba(255, 255, 255, 1)'; // Set white text
     ctx.fillText("x = " + g_atX.toFixed(2) + ", " + "y = " + g_atY.toFixed(2) + ", " + "z = " + g_atZ.toFixed(2), 5, 15);
     ctx.fillText('yaw = ' + yaw.toFixed(2) + ", " + "pitch = " + pitch.toFixed(2), 5, 30);
-
-    // Add a texture toggle
-
-    // ctx.fillText('w/s', 10, 35);
-    // ctx.fillText('a/d', 10, 50);
-    // ctx.fillText('q/e', 10, 65);
-    // ctx.fillText('Arrow keys', 10, 80);
-    // ctx.fillText('1, 2, 3', 10, 95);
-    // ctx.fillText('4, 5, 6', 10, 110);
-    // ctx.fillText('SHIFT  4, 5, 6', 10, 125);
-    // ctx.fillText('7, 8, 9', 10, 140);
-    // ctx.fillText('SHIFT  7, 8, 9', 10, 155);
-    // ctx.fillText('p/o', 10, 170);
-    // ctx.fillText('0', 10, 185);
-    // ctx.fillText('ENTER', 10, 200);
-
-    // I can write in co-ordinates. Nice.
-    //
-    // ctx.font = '11px Arial';
-    // ctx.fillText('Move forwards/ backwards', 40, 35);
-    // ctx.fillText('Move left/ right', 40, 50);
-    // ctx.fillText('Move up/ down', 40, 65);
-    // ctx.fillText('Look around', 80, 80);
-    // ctx.fillText('Trigger back/ centre/ front lights', 50, 95);
-    // ctx.fillText('Switch left/ centre/ right boards', 50, 110);
-    // ctx.fillText('Reverse board motion', 90, 125);
-    // ctx.fillText('Pull back/ centre/ front blind down', 50, 140);
-    // ctx.fillText('Pull back/ centre/ front blind up', 90, 155);
-    // ctx.fillText('Raise/ lower sun altitude', 40, 170);
-    // ctx.fillText('Toggle textures', 25, 185);
-    // ctx.fillText('Toggle instructions', 55, 200);
-
+    ctx.fillText('Toggle textures = 1', 5, 45);
+    ctx.fillText('Toggle streetlights = 2', 5, 60);
 
 }
 
