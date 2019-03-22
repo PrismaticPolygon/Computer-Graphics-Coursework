@@ -989,6 +989,8 @@ function createTexture(gl, name, id){
         if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
 
             gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
         } else {
 
