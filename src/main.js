@@ -3,12 +3,23 @@ let viewMatrix = new Matrix4(); // View matrix
 let projMatrix = new Matrix4(); // Projection matrix
 let normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
 
+const LIGHT_POSITIONS = [
+    -2.5, 3, 4, // Left streetlight
+    2.5, 3, 4,  // Right streetlight
+    -5, 12, 5   // Sun
+];
+
+const LIGHT_COLORS = [
+    255/255, 241/255, 224/255,
+    255/255, 241/255, 224/255,
+    253/255, 184/255, 19/255
+];
 
 let INIT_TEXTURE_COUNT = 0;
 
 let g_atX = 0;    // The x co-ordinate of the eye
 let g_atY = 3;    // The y co-ordinate of the eye
-let g_atZ = 9;    // The z co-ordinate of the eye
+let g_atZ = 11;    // The z co-ordinate of the eye
 
 let g_atDelta = 0.005;    // The movement delta of the eye
 let g_lookAtDelta = 0.05;  // The rotation delta of the angle the eye is looking at (degrees)
@@ -67,9 +78,12 @@ function main() {
         projMatrix.setPerspective(60, canvas.width / canvas.height, 0.1, 20);
         gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
 
-        gl.uniform3f(u_LightColor, 1.0, 1.0, 1.0);
-        gl.uniform3f(u_LightPosition, 2.3, 4.0, 3.5);
         gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+
+        // Yeah, definitely this line. Hm.
+
+        gl.uniform3fv(u_LightColor,LIGHT_COLORS);
+        gl.uniform3fv(u_LightPosition, LIGHT_POSITIONS);
 
     }
 
@@ -161,6 +175,7 @@ function handleKeys() {
 }
 
 // Oh: draw them as planes to save vertices! Doesn't that make sense?
+// Of course, if I'm not moving, it's not laggy. Remember: GPU / CPU comms is the bottleneck.
 
 function draw() {
 
@@ -183,15 +198,20 @@ function draw() {
     draw_front_door(-2, 0, 2);
     draw_front_window(-0.2, 0, 2);
     draw_nathaniel_window(0.2, 3.45, 2);
-    draw_structure(-2.5, 0, 2)
+    draw_structure(-2.5, 0, 2);
 
 }
+
+// Let's add it as another light source, first
 
 function draw_structure(x, y, z) {
 
     let height = 5.5;
     let depth = 4;
     let width = 5;
+    let roof_length = depth / 2;
+    let roof_height = 1;
+    let roof_slope = Math.sqrt(Math.pow(roof_height, 2) + Math.pow(roof_length, 2));
     let n = initCubeVertexBuffers(gl, 1, 1, 1, 1);
 
     if (n < 0) {
@@ -209,6 +229,18 @@ function draw_structure(x, y, z) {
     draw_cube(n, 0);
 
     modelMatrix = popMatrix();
+
+    // pushMatrix(modelMatrix);
+    // modelMatrix.translate(x + width / 2, y + height, z - depth / 2);
+    // modelMatrix.scale(width, height, depth);
+    //
+    // draw_cube(n, 2);
+    //
+    // modelMatrix = popMatrix();
+
+    // It will ruin my windows, for sure.
+    // It'd be a matter of adjusting my vertex buffers. But first things first! Roof, then I'll make some streetlights,
+    // and make them light sources.
 
 }
 

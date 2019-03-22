@@ -1,5 +1,7 @@
 const VSHADER_SOURCE = `
 
+    precision mediump float;
+
     attribute vec4 a_Position;
     attribute vec4 a_Color;
     attribute vec4 a_Normal;
@@ -36,8 +38,8 @@ const FSHADER_SOURCE = `
     precision mediump float;
     
     uniform bool u_UseTextures;
-    uniform vec3 u_LightColor;
-    uniform vec3 u_LightPosition;
+    uniform vec3 u_LightColor[3];
+    uniform vec3 u_LightPosition[3];
     uniform vec3 u_AmbientLight;
     uniform sampler2D u_Sampler; 
     
@@ -48,26 +50,28 @@ const FSHADER_SOURCE = `
     
     void main() {
     
+        vec4 col = u_UseTextures ? texture2D(u_Sampler, v_TexCoords) : v_Color; 
         vec3 normal = normalize(v_Normal);
-        vec3 lightDirection = normalize(u_LightPosition - v_Position);
-        float nDotL = max(dot(lightDirection, normal), 0.0);
+        vec3 finalColor = u_AmbientLight * col.rgb; // Initialise final colour
+        
         vec3 diffuse;
-        vec3 ambient;
+        float attenuation;
+        
+        for (int i = 0; i < 3; i++) {
+        
+            vec3 lightDirection = normalize(u_LightPosition[i] - v_Position);
+            float nDotL = max(dot(lightDirection, normal), 0.0);
+            diffuse = u_LightColor[i] * col.rgb * nDotL;
+            
+            float distanceToLight = length(u_LightPosition[i] - v_Position);
+            
+            attenuation = 1.0 / (1.0 + 0.35 * pow(distanceToLight, 2.0));
+        
+            finalColor += attenuation * diffuse;
+
+        }
     
-        if (u_UseTextures) {
-        
-            vec4 TexColor = texture2D(u_Sampler, v_TexCoords);
-            diffuse = u_LightColor * TexColor.rgb * nDotL * 1.2;
-            ambient = u_AmbientLight * TexColor.rgb * nDotL * 1.2;
-        
-        } else {
-       
-            diffuse = u_LightColor * v_Color.rgb * nDotL;
-            ambient = u_AmbientLight * v_Color.rgb;
-        
-        } 
-    
-        gl_FragColor = vec4(diffuse + ambient, v_Color.a);
+        gl_FragColor = vec4(finalColor, col.a);
         
     }
 `;
