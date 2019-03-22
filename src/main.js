@@ -17,9 +17,7 @@ const LIGHT_COLORS = [
 
 let INIT_TEXTURE_COUNT = 0;
 let USE_TEXTURES = false;
-let USE_STREETLIGHTS = true; // Now THAT is not going to be fun. How tf will I update the vertex shader?
-// Oh, just splice out the appropriate things, I guess.
-// So that's really quite simple.
+let USE_STREETLIGHTS = false;
 
 // I'll have to refactor my keypress implementation though...
 
@@ -102,7 +100,14 @@ function main() {
     initTextures(gl, u_Sampler);
 
     // Add key handlers
-    window.addEventListener("keydown", (ev) => keys.push(ev.key));
+    window.addEventListener("keydown", (ev) => {
+
+        handleDiscreteKeys(ev.key);
+
+        keys.push(ev.key)
+
+    });
+
     window.addEventListener("keyup", (ev) => keys.splice(keys.indexOf(ev.key)));
 
     // Start rendering loops
@@ -110,9 +115,51 @@ function main() {
 
 }
 
-// Stop getting distracted! Do the car
+function handleDiscreteKeys(key) {
 
-function handleKeys() {
+    switch (key) {
+
+        case "1":
+
+            USE_TEXTURES = !USE_TEXTURES;
+
+            console.log("USE_TEXTURES: " + USE_TEXTURES);
+
+            break;
+
+        case "2":
+
+            USE_STREETLIGHTS = !USE_STREETLIGHTS;
+
+            console.log("USE_STREETLIGHTS: " + USE_STREETLIGHTS);
+
+            if (USE_STREETLIGHTS) {
+
+                gl.uniform3fv(u_LightColor, LIGHT_COLORS);
+
+            } else {
+
+                let light_colors = [...LIGHT_COLORS];
+
+                for (let i = 3; i < 9; i++) {
+
+                    light_colors[i] = 0;
+
+                }
+
+                gl.uniform3fv(u_LightColor, light_colors);
+
+            }
+
+            break;
+
+    }
+
+}
+
+
+
+function handleContinuousKeys() {
 
     // I could then remove the key. Kinda messy, though.
 
@@ -794,7 +841,7 @@ function tick() {
     prev = (cur - prev);
     prev = cur;
 
-    handleKeys();
+    handleContinuousKeys();
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     draw();
     draw_HUD();
