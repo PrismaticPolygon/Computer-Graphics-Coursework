@@ -200,6 +200,80 @@ function draw() {
     draw_nathaniel_window(0.2, 3.45, 2);
     draw_structure(-2.5, 0, 2);
 
+    draw_streetlights();
+
+}
+
+function draw_streetlights() {
+
+    let column_height = 4;
+    let column_size = 0.1;
+    let lamp_size= 0.2;
+    let lamp_height = 0.4;
+    let n = initCubeVertexBuffers(gl, 0.4, 0.4, 0.4);
+
+    if (n < 0) {
+
+        console.log('Failed to set the vertex information');
+        return;
+
+    }
+
+    // left
+    {
+
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(-2.5, 0, 4);
+
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(column_size / 2, column_height / 2, column_size / 2);
+        modelMatrix.scale(column_size, column_height, column_size);
+
+        draw_cube(n);
+
+        modelMatrix = popMatrix();
+
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(column_size / 2, column_height + lamp_height / 2, column_size / 2);
+        modelMatrix.scale(lamp_size, lamp_height, lamp_size);
+
+        draw_cube(n);
+
+        modelMatrix = popMatrix();
+        modelMatrix = popMatrix();
+
+    }
+
+    //right
+    {
+
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(2.5, 0, 4);
+
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(column_size / 2, column_height / 2, column_size / 2);
+        modelMatrix.scale(column_size, column_height, column_size);
+
+        draw_cube(n);
+
+        modelMatrix = popMatrix();
+
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(column_size / 2, column_height + lamp_height / 2, column_size / 2);
+        modelMatrix.scale(lamp_size, lamp_height, lamp_size);
+
+        draw_cube(n);
+
+        modelMatrix = popMatrix();
+        modelMatrix = popMatrix();
+
+    }
 }
 
 // Let's add it as another light source, first
