@@ -114,9 +114,9 @@ function initPlaneVertexBuffers(gl, r, g, b, a=1) {
 
 function initCubeVertexBuffers(gl, r, g, b, a=1) {
 
-    if (!r) r = Math.random();
-    if (!g) g = Math.random();
-    if (!b) b = Math.random();
+    if (r === undefined) r = Math.random();
+    if (g === undefined) g = Math.random();
+    if (b === undefined) b = Math.random();
 
     let vertices = new Float32Array([   // Coordinates
 

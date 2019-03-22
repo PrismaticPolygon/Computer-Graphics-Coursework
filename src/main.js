@@ -17,8 +17,8 @@ let projMatrix = new Matrix4(); // Projection matrix
 let normalMatrix = new Matrix4();  // Coordinate transformation matrix for normals
 
 const LIGHT_POSITIONS = [
-    -2.5, 3, 4, // Left streetlight
-    2.5, 3, 4,  // Right streetlight
+    -2.5, 3, 4.2, // Left streetlight
+    2.5, 3, 4.2,  // Right streetlight
     -5, 12, 5   // Sun
 ];
 
@@ -28,8 +28,7 @@ const LIGHT_COLORS = [
     253/255, 184/255, 19/255
 ];
 
-// Okay! Time for... a car. It's like a continuous translation matrix, I imagine. For each tick, we animate the car
-// use cur and prev to adjust the movement, and bounding it appropriately.
+let light_colors = [...LIGHT_COLORS];
 
 let INIT_TEXTURE_COUNT = 0;
 let USE_TEXTURES = false;
@@ -52,6 +51,9 @@ let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_
 let keys = [];
 
 let matrixStack = [];
+
+// I'll add a blind to Nathaniel's room, that seems to be a weirdly popular thing to do.
+// No, I'll eat first.
 
 function pushMatrix(m) {
 
@@ -140,21 +142,19 @@ function handleDiscreteKeys(key) {
 
             if (USE_STREETLIGHTS) {
 
-                gl.uniform3fv(u_LightColor, LIGHT_COLORS);
+                light_colors = [...LIGHT_COLORS];
 
             } else {
 
-                let light_colors = [...LIGHT_COLORS];
-
-                for (let i = 3; i < 9; i++) {
+                for (let i = 0; i < 6; i++) {
 
                     light_colors[i] = 0;
 
                 }
 
-                gl.uniform3fv(u_LightColor, light_colors);
-
             }
+
+            gl.uniform3fv(u_LightColor, light_colors);
 
             break;
 
@@ -267,15 +267,17 @@ function draw() {
 
 }
 
-// Yeah, plus frame_time * direction * some factor.
-
 let car_x = 0, car_y = 0, car_z = 5;
 
 function draw_car() {
 
-    let car_length = 2;
-    let car_height = 1;
+    let car_length = 2.5;
+    let car_height = 0.75;
     let car_width = 1;
+
+    let cockpit_height = 0.5;
+    let cockpit_length = 1;
+
     let n = initCubeVertexBuffers(gl, 0.4, 0.4, 0.4);
 
     if (n < 0) {
@@ -285,10 +287,9 @@ function draw_car() {
 
     }
 
-    car_x += delta;
-    // Perhaps prev is negative?
+    car_x += 2 * delta;
 
-    if (car_x > 8) {
+    if (car_x > 12) {
 
         car_x = -8;
 
@@ -297,10 +298,24 @@ function draw_car() {
     pushMatrix(modelMatrix);
 
     modelMatrix.translate(car_x, car_y, car_z);
+
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(0, car_height / 2, 0);
     modelMatrix.scale(car_length, car_height, car_width);
 
     draw_cube(n, 0);
 
+    modelMatrix = popMatrix();
+
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(0, car_height + cockpit_height / 2, 0);
+    modelMatrix.scale(cockpit_length, cockpit_height, car_width);
+
+    draw_cube(n, 0);
+
+    modelMatrix = popMatrix();
     modelMatrix = popMatrix();
 
 }
@@ -320,14 +335,12 @@ function draw_streetlights() {
 
     }
 
-    // left
+    // bases
     {
 
         pushMatrix(modelMatrix);
 
         modelMatrix.translate(-2.5, 0, 4);
-
-        pushMatrix(modelMatrix);
 
         modelMatrix.translate(column_size / 2, column_height / 2, column_size / 2);
         modelMatrix.scale(column_size, column_height, column_size);
@@ -338,15 +351,29 @@ function draw_streetlights() {
 
         pushMatrix(modelMatrix);
 
-        modelMatrix.translate(column_size / 2, column_height + lamp_height / 2, column_size / 2);
-        modelMatrix.scale(lamp_size, lamp_height, lamp_size);
+        modelMatrix.translate(2.5, 0, 4);
+
+        modelMatrix.translate(column_size / 2, column_height / 2, column_size / 2);
+        modelMatrix.scale(column_size, column_height, column_size);
 
         draw_cube(n);
 
         modelMatrix = popMatrix();
-        modelMatrix = popMatrix();
 
     }
+
+    // I don't update it globally, alas.
+
+    n = initCubeVertexBuffers(gl, ...light_colors.slice(0, 3), 0.6);
+
+    if (n < 0) {
+
+        console.log('Failed to set the vertex information');
+        return;
+
+    }
+
+    // Ooh, and then change their color to dark! Wait...
 
     //right
     {
@@ -355,16 +382,16 @@ function draw_streetlights() {
 
         modelMatrix.translate(2.5, 0, 4);
 
-        pushMatrix(modelMatrix);
-
-        modelMatrix.translate(column_size / 2, column_height / 2, column_size / 2);
-        modelMatrix.scale(column_size, column_height, column_size);
+        modelMatrix.translate(column_size / 2, column_height + lamp_height / 2, column_size / 2);
+        modelMatrix.scale(lamp_size, lamp_height, lamp_size);
 
         draw_cube(n);
 
         modelMatrix = popMatrix();
 
         pushMatrix(modelMatrix);
+
+        modelMatrix.translate(-2.5, 0, 4);
 
         modelMatrix.translate(column_size / 2, column_height + lamp_height / 2, column_size / 2);
         modelMatrix.scale(lamp_size, lamp_height, lamp_size);
@@ -372,7 +399,7 @@ function draw_streetlights() {
         draw_cube(n);
 
         modelMatrix = popMatrix();
-        modelMatrix = popMatrix();
+
 
     }
 
@@ -433,7 +460,7 @@ function draw_floor() {
 
     modelMatrix.setRotate(-90, 1, 0, 0);
     modelMatrix.translate(0, 0, -height);
-    modelMatrix.scale(8, 8, height);
+    modelMatrix.scale(8, 12, height);
 
     draw_plane(n);
 
