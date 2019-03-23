@@ -180,7 +180,6 @@ function initCubeVertexBuffers(gl, r, g, b, a=1) {
     ]);
 
     // Indices of the vertices
-
     let indices = new Uint8Array([
         0, 1, 2, 0, 2, 3,    // front
         4, 5, 6, 4, 6, 7,    // right
@@ -190,15 +189,11 @@ function initCubeVertexBuffers(gl, r, g, b, a=1) {
         20, 21, 22, 20, 22, 23     // back
     ]);
 
-
-
     // Write the vertex property to buffers (coordinates, colors and normals)
     if (!initArrayBuffer(gl, 'a_Position', vertices, 3, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_Color', colors, 4, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_Normal', normals, 3, gl.FLOAT)) return -1;
     if (!initArrayBuffer(gl, 'a_TexCoords', texCoords, 2, gl.FLOAT)) return -1;
-
-
 
     // Write the indices to the buffer object
     let indexBuffer = gl.createBuffer();
@@ -216,195 +211,5 @@ function initCubeVertexBuffers(gl, r, g, b, a=1) {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
 
     return indices.length;
-
-}
-
-// function initPlaneVertexBuffers(gl, width, height, depth, x, y, z, color) {
-//     // A single square in the x-y plane. Used to reduce vertices where possible
-//
-//     // Coordinates, colors, normals and indices; line 1 - triangle 1, line 2 - triangle 2
-//     let vertices = new Float32Array([
-//         0.5, 0.5, 0, -0.5, 0.5, 0, -0.5, -0.5, 0,
-//         -0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0
-//     ]);
-//
-//     color = color ? color : [Math.random(), Math.random(), Math.random()];
-//
-//     let colors = new Float32Array([
-//         r, g, b, a, r, g, b, a, r, g, b, a,
-//         r, g, b, a, r, g, b, a, r, g, b, a
-//     ]);
-//
-//     let normal = new Float32Array([
-//         0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0,
-//         0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0
-//     ]);
-//
-//     let indices = new Uint8Array([
-//         0, 1, 2,
-//         0, 2, 3
-//     ]);
-//
-//     // Write the vertex property to buffers (coordinates, colors and normals)
-//     if (!initArrayBuffer(gl, 'a_Position', vertices, 3, gl.FLOAT)) return -1;
-//     if (!initArrayBuffer(gl, 'a_Color', colors, 4, gl.FLOAT)) return -1;
-//     if (!initArrayBuffer(gl, 'a_Normal', normal, 3, gl.FLOAT)) return -1;
-//
-//     // Write the indices to the buffer object
-//     var indexBuffer = gl.createBuffer();
-//     if (!indexBuffer) {
-//         console.log('Failed to create the buffer object');
-//         return false;
-//     }
-//
-//     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-//     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-//
-//     return indices.length;
-// }
-
-
-
-// function initCubeVertexBuffers(gl, width, height, depth, x, y, z, color, texture) {
-//
-//     let v0 = [x, y, z];
-//     let v1 = [x + width, y, z];
-//     let v2 = [x + width, y, z + depth];
-//     let v3 = [x, y, z + depth];
-//     let v4 = [x, y + height, z];
-//     let v5 = [x + width, y + height, z];
-//     let v6 = [x + width, y + height, z + depth];
-//     let v7 = [x, y + height, z + depth];
-//
-//     const vertices = new Float32Array([   // Coordinates
-//         ...v0, ...v1, ...v2, ...v3, // down
-//         ...v0, ...v4, ...v5, ...v1, // back
-//         ...v1, ...v2, ...v6, ...v5, // right
-//         ...v2, ...v3, ...v7, ...v6, // front
-//         ...v3, ...v0, ...v4, ...v7, // left
-//         ...v4, ...v5, ...v6, ...v7  // top
-//     ]);
-//
-//     color = color ? color : [Math.random(), Math.random(), Math.random()];
-//
-//     const textureCoordinates = vertices;
-//
-//     const colors = new Float32Array([    // Colors
-//         ...color, ...color, ...color, ...color,     // down
-//         ...color, ...color, ...color, ...color,     // back
-//         ...color, ...color, ...color, ...color,     // right
-//         ...color, ...color, ...color, ...color,     // front
-//         ...color, ...color, ...color, ...color,     // left
-//         ...color, ...color, ...color, ...color　    // top
-//     ]);
-//
-//     const normals = new Float32Array([
-//         0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0, // down
-//         0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0, // back
-//         1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0, // right
-//         0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0, // front
-//         -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0, // left
-//         0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0, // up
-//     ]);
-//
-//     const indices = new Uint8Array([
-//         0, 1, 2,   0, 2, 3,    // front
-//         4, 5, 6,   4, 6, 7,    // right
-//         8, 9,10,   8,10,11,    // up
-//         12,13,14,  12,14,15,    // left
-//         16,17,18,  16,18,19,    // down
-//         20,21,22,  20,22,23     // back
-//     ]);
-//
-//     if (!initArrayBuffer(gl, 'a_Position', vertices, 3, gl.FLOAT)) return -1;
-//     if (!initArrayBuffer(gl, 'a_Color', colors, 3, gl.FLOAT)) return -1;
-//     if (!initArrayBuffer(gl, 'a_Normal', normals, 3, gl.FLOAT)) return -1;
-//     if (!initArrayBuffer(gl, 'a_TexCoords', textureCoordinates, 3, gl.FLOAT)) return -1;
-//
-//     // Write the indices to the buffer object
-//     let indexBuffer = gl.createBuffer();
-//
-//     if (!indexBuffer) {
-//
-//         console.log('Failed to create the buffer object');
-//         return false;
-//
-//     }
-//
-//     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-//     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-//
-//     return indices.length;
-//
-// }
-
-function createCuboid(width, height, depth, x, y, z, color, texture) {
-
-    // Create a cube
-    //    v4----- v5
-    //   /|      /|
-    //  v7------v6|
-    //  | |     | |
-    //  | |v0---|-|v1
-    //  |/      |/
-    //  v3------v2
-
-    let v0 = [x, y, z];
-    let v1 = [x + width, y, z];
-    let v2 = [x + width, y, z + depth];
-    let v3 = [x, y, z + depth];
-    let v4 = [x, y + height, z];
-    let v5 = [x + width, y + height, z];
-    let v6 = [x + width, y + height, z + depth];
-    let v7 = [x, y + height, z + depth];
-
-    const vertices = new Float32Array([   // Coordinates
-        ...v0, ...v1, ...v2, ...v3, // down
-        ...v0, ...v4, ...v5, ...v1, // back
-        ...v1, ...v2, ...v6, ...v5, // right
-        ...v2, ...v3, ...v7, ...v6, // front
-        ...v3, ...v0, ...v4, ...v7, // left
-        ...v4, ...v5, ...v6, ...v7  // top
-    ]);
-
-    color = color ? color : [Math.random(), Math.random(), Math.random()];
-
-    const textureCoordinates = vertices;
-
-    const colors = new Float32Array([    // Colors
-        ...color, ...color, ...color, ...color,     // down
-        ...color, ...color, ...color, ...color,     // back
-        ...color, ...color, ...color, ...color,     // right
-        ...color, ...color, ...color, ...color,     // front
-        ...color, ...color, ...color, ...color,     // left
-        ...color, ...color, ...color, ...color　    // top
-    ]);
-
-    const normals = new Float32Array([
-        0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0,   0.0,-1.0, 0.0, // down
-        0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0,   0.0, 0.0,-1.0, // back
-        1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0,   1.0, 0.0, 0.0, // right
-        0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0,   0.0, 0.0, 1.0, // front
-        -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0,  -1.0, 0.0, 0.0, // left
-        0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0,   0.0, 1.0, 0.0, // up
-    ]);
-
-    const indices = new Uint8Array([
-        0, 1, 2,   0, 2, 3,    // front
-        4, 5, 6,   4, 6, 7,    // right
-        8, 9,10,   8,10,11,    // up
-        12,13,14,  12,14,15,    // left
-        16,17,18,  16,18,19,    // down
-        20,21,22,  20,22,23     // back
-    ]);
-
-    return {
-        vertices: vertices,
-        colors: colors,
-        normals: normals,
-        textureCoordinates: textureCoordinates,
-        indices: indices,
-        texture: texture
-    }
 
 }
