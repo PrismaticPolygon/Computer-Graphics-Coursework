@@ -20,10 +20,11 @@ const LIGHT_POSITIONS = [
     -2.5, 4.2, 4, // Left streetlight
     2.5, 4.2, 4,  // Right streetlight
     4, 4.2, -6,  // Back streetlight
-    0, 20, 0   // Sun
+    0, 10, 0   // Sun
 ];
 
 // Maybe the sun shouldn't attenuate.
+// Yeah, I think that's the problem. Is there any example somewhere?
 
 const LIGHT_COLORS = [
     255/255, 241/255, 224/255,
@@ -37,6 +38,7 @@ let light_colors = [...LIGHT_COLORS];
 let INIT_TEXTURE_COUNT = 0;
 let USE_TEXTURES = false;
 let USE_STREETLIGHTS = true;
+let USE_SUN = true;
 
 let g_atX = 0;    // The x co-ordinate of the eye
 let g_atY = 3;    // The y co-ordinate of the eye
@@ -162,6 +164,30 @@ function handleDiscreteKeys(key) {
 
             break;
 
+        case "3":
+
+            USE_SUN = !USE_SUN;
+
+            console.log("USE_SUN: " + USE_SUN);
+
+            if (USE_SUN) {
+
+                light_colors[9] = LIGHT_COLORS[9];
+                light_colors[10] = LIGHT_COLORS[10];
+                light_colors[11] = LIGHT_COLORS[11];
+
+            } else {
+
+                light_colors[9] = 0;
+                light_colors[10] = 0;
+                light_colors[11] = 0;
+
+            }
+
+            gl.uniform3fv(u_LightColor, light_colors);
+
+            break;
+
     }
 
 }
@@ -271,7 +297,6 @@ function draw() {
     draw_nathaniel_window(-1.8, 3.45, -2.1);
     draw_nathaniel_window(0.6, 0.75, -2.1);
 
-
     draw_car();
 
     draw_streetlights();
@@ -317,7 +342,7 @@ function draw_car() {
     modelMatrix.translate(0, car_height / 2, 0);
     modelMatrix.scale(car_length, car_height, car_width);
 
-    draw_cube(n, 0);
+    draw_cube(n);
 
     modelMatrix = popMatrix();
 
@@ -326,7 +351,7 @@ function draw_car() {
     modelMatrix.translate(0, car_height + cockpit_height / 2, 0);
     modelMatrix.scale(cockpit_length, cockpit_height, car_width);
 
-    draw_cube(n, 0);
+    draw_cube(n);
 
     modelMatrix = popMatrix();
     modelMatrix = popMatrix();
@@ -511,7 +536,7 @@ function draw_window(x, y, z, width, height, alpha) {
     modelMatrix.translate(x,y,z);
 
     // Draw frame
-    let n = initCubeVertexBuffers(gl, 0, 0, 0);
+    let n = initCubeVertexBuffers(gl, 1, 1, 1);
     if (n < 0) {
         console.log('Failed to set the vertex information');
         return;
@@ -911,25 +936,7 @@ function draw_front_door(x, y, z) {
 
     modelMatrix = popMatrix();
 
-    //window
-    // pushMatrix(modelMatrix);
-    //
-    // n = initPlaneVertexBuffers(gl, 1, 1, 1, 0.25);
-    //
-    // if (n < 0) {
-    //
-    //     console.log('Failed to set the vertex information');
-    //     return;
-    //
-    // }
-    //
-    // // I'll be doing little better than guessing. I'll leave this for now, until I can figure out what the problem is.
-    //
-    // modelMatrix.translate(-2 * width, y + height / 2 + frame_width + window_height / 2, 2);
-    // modelMatrix.scale(width, window_height, 1);
-    // draw_plane(n);
-    //
-    // modelMatrix = popMatrix();
+    draw_window(x + frame_width + width / 2, y + step_height + 2.5 * frame_width + height + window_height / 2, z + 0.001, width, window_height, 0.4); // Ah, gotcha.
 
 }
 
@@ -989,6 +996,7 @@ function createTexture(gl, name, id){
         if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
 
             gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
@@ -1013,7 +1021,7 @@ function createTexture(gl, name, id){
 function initTextures() {
 
     // Setup texture mappings
-    createTexture(gl, '../textures/bricks.jpg', gl.TEXTURE0);
+    createTexture(gl, '../textures/bricks2.jpg', gl.TEXTURE0);
     createTexture(gl, '../textures/white_wood.jpg', gl.TEXTURE1);
     createTexture(gl, '../textures/slate.jpg', gl.TEXTURE2);
     createTexture(gl, '../textures/door.png', gl.TEXTURE3);
