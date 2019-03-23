@@ -60,6 +60,7 @@ let matrixStack = [];
 
 // I'll add a blind to Nathaniel's room, that seems to be a weirdly popular thing to do.
 // No, I'll eat first.
+// I'll have a draw blind function that just increases the scale up to a max. For every window.
 
 function pushMatrix(m) {
 
@@ -252,6 +253,24 @@ function handleContinuousKeys() {
 
                 break;
 
+            case "z":  // z key -> lower blind
+
+                blind_height += 0.01;
+
+                break;
+
+            case "x":  // x key -> raise blind
+
+                blind_height -= 0.01;
+
+                if (blind_height < 0) {
+
+                    blind_height = 0;
+
+                }
+
+                break;
+
             case "Shift":  // shift key -> move the eye up
 
                 g_atY += g_atDelta;
@@ -266,6 +285,8 @@ function handleContinuousKeys() {
         }
 
     }
+
+    // console.log("Blind height:", blind_height);
 
 }
 
@@ -527,42 +548,53 @@ function draw_floor() {
 
 }
 
+let blind_height = 0;
+
 function draw_window(x, y, z, width, height, alpha) {
 
     // Forms a window frame with transparent pane (alpha) - centre of pane at x, y, z
-    // Total size - width+0.09 * height+0.09 * 0.1
+    // Total size - width + 0.09 * height + 0.09 * 0.1
 
     pushMatrix(modelMatrix);
-    modelMatrix.translate(x,y,z);
+    modelMatrix.translate(x, y, z);
 
     // Draw frame
     let n = initCubeVertexBuffers(gl, 1, 1, 1);
+
     if (n < 0) {
         console.log('Failed to set the vertex information');
         return;
     }
 
-    for (let i=0; i<=1; i++){
+    for (let i = 0; i <= 1; i++){
 
-        let sign = Math.pow(-1,i);
+        let sign = Math.pow(-1, i);
         // Top/bottom
         pushMatrix(modelMatrix);
-        modelMatrix.translate(0,sign*height/2,0);
-        modelMatrix.rotate(90,0,0,1);
-        modelMatrix.scale(0.045,width+0.045,0.1);
+
+        modelMatrix.translate(0 , sign * height / 2, 0);
+        modelMatrix.rotate(90, 0, 0, 1);
+        modelMatrix.scale(0.045, width + 0.045, 0.1);
+
         draw_cube(n, 1);
+
         modelMatrix = popMatrix();
 
         // Left/right
         pushMatrix(modelMatrix);
-        modelMatrix.translate(sign*width/2,0,0);
-        modelMatrix.scale(0.045,height+0.045,0.1);
+
+        modelMatrix.translate(sign * width / 2, 0, 0);
+        modelMatrix.scale(0.045, height + 0.045, 0.1);
         draw_cube(n, 1);
+
         modelMatrix = popMatrix();
     }
 
+    pushMatrix(modelMatrix);
+
     // Draw glass - transparent
     n = initPlaneVertexBuffers(gl, 1, 1, 1, alpha);
+
     if (n < 0) {
         console.log('Failed to set the vertex information');
         return;
@@ -571,6 +603,27 @@ function draw_window(x, y, z, width, height, alpha) {
     modelMatrix.scale(width, height, 1);
     draw_plane(n);
 
+    modelMatrix = popMatrix();
+
+    pushMatrix(modelMatrix);
+
+    // Draw blind
+    n = initPlaneVertexBuffers(gl, 0.3, 0.3, 0.3, 1);
+    if (n < 0) {
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    // Might need translating...
+
+    let actual = Math.min(blind_height, height);
+
+    modelMatrix.translate(0, height / 2 - actual / 2, 0.0001);
+    modelMatrix.scale(width, actual, 1);
+
+    draw_plane(n);
+
+    modelMatrix = popMatrix();
     modelMatrix = popMatrix();
 
 }
@@ -825,6 +878,8 @@ function draw_front_window(x, y, z) {
     }
 
 }
+
+// Sophie had car, wheels, a door and windows. I'm not... ah fuck it. I could probably make wheels....
 
 function draw_front_door(x, y, z) {
 
