@@ -310,7 +310,7 @@ function draw() {
     draw_floor();
     draw_front_door(-1.6, 0, 2);
     draw_front_window(-0.2, 0, 2);
-    // draw_nathaniel_window(0.2, 3.45, 2);
+    draw_nathaniel_window(0.2, 3.45, 2);
     // draw_structure(-2.5, 0, 2, 5.5, 4, 5);
     //
     // draw_structure(-2.5, 0, -2, 2, 3, 2);
@@ -325,7 +325,6 @@ function draw() {
     // Yeah, I might actually add a streetlight back here for some lighting.
 
 }
-
 
 function draw_car() {
 
@@ -621,6 +620,7 @@ function draw_nathaniel_window(x, y, z) {
 
     let width = 1.2;
     let lintel_height = 0.2;
+    let lintel_depth = 0.2;
     let height = 1.4;
     let depth = 0.1;
     let n = initCubeVertexBuffers(gl, 0.4, 0.4, 0.4);
@@ -637,29 +637,27 @@ function draw_nathaniel_window(x, y, z) {
     modelMatrix.translate(x, y, z);
 
     //bottom lintel
-
     pushMatrix(modelMatrix);
 
     modelMatrix.translate(width / 2, lintel_height / 2, depth / 2);
-    modelMatrix.scale(width, lintel_height, 0.4);
+    modelMatrix.scale(width, lintel_height, lintel_depth);
 
     draw_cube(n, 4);
 
     modelMatrix = popMatrix();
 
     //top lintel
-
     pushMatrix(modelMatrix);
 
     modelMatrix.translate(width / 2, 1.5 * lintel_height + height, depth / 2);
-    modelMatrix.scale(width, lintel_height, 0.4);
+    modelMatrix.scale(width, lintel_height, lintel_depth);
 
     draw_cube(n, 4);
 
     modelMatrix = popMatrix();
 
     //window
-    draw_window(width / 2, lintel_height + height / 2, depth / 2, width, height, 0.25);
+    draw_window(width / 2, lintel_height + height / 2, depth / 2, width, height);
 
     modelMatrix = popMatrix();
 
