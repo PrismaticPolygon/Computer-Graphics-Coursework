@@ -20,7 +20,7 @@ const LIGHT_COLORS = [
     255/255, 241/255, 224/255,
     255/255, 241/255, 224/255,
     255/255, 241/255, 224/255,
-    253/255, 184/255, 19/255
+    253/255, 253/255, 254/255
 ];
 
 let light_colors = [...LIGHT_COLORS];
@@ -51,8 +51,6 @@ let car_x = 0, car_y = 0, car_z = 5;
 let then = 0;
 let delta = 0;
 let blind_height = 0;
-
-// No, I'll eat first.
 
 function pushMatrix(m) {
 
@@ -98,7 +96,7 @@ function main() {
     gl.uniformMatrix4fv(u_ProjMatrix, false, projMatrix.elements);
 
     // Set up lighting
-    gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2);
+    gl.uniform3f(u_AmbientLight, ...light_colors.slice(9, 12));
     gl.uniform3fv(u_LightColor,LIGHT_COLORS);
     gl.uniform3fv(u_LightPosition, LIGHT_POSITIONS);
 
@@ -171,13 +169,14 @@ function handleDiscreteKeys(key) {
 
             } else {
 
-                light_colors[9] = 0;
-                light_colors[10] = 0;
-                light_colors[11] = 0;
+                light_colors[9] = 79 / 255;
+                light_colors[10] = 105 / 255;
+                light_colors[11] = 136 / 255;
 
             }
 
             gl.uniform3fv(u_LightColor, light_colors);
+            gl.uniform3f(u_AmbientLight, ...light_colors.slice(9, 12));
 
             break;
 
@@ -257,6 +256,12 @@ function handleContinuousKeys() {
 
                 blind_height += 0.01;
 
+                if (blind_height > 0.8) {
+
+                    blind_height = 0.8;
+
+                }
+
                 break;
 
             case "x":  // x key -> raise blind
@@ -308,21 +313,14 @@ function draw() {
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
     draw_floor();
-    draw_front_door(-1.6, 0, 2);
-    draw_front_window(-0.2, 0, 2);
-    draw_nathaniel_window(0.2, 3.45, 2);
-    // draw_structure(-2.5, 0, 2, 5.5, 4, 5);
-    //
-    // draw_structure(-2.5, 0, -2, 2, 3, 2);
-    // draw_nathaniel_window(0.6, 3.45, -2.1);
-    // draw_nathaniel_window(-1.8, 3.45, -2.1);
-    // draw_nathaniel_window(0.6, 0.75, -2.1);
-    //
-    draw_car();
-    //
-    draw_streetlights();
+    // draw_front_door(-1.6, 0, 2);
+    // draw_front_window(-0.2, 0, 2);
+    // draw_nathaniel_window(0.2, 3.45, 2);
+    draw_structure(-2.5, 0, 2, 5.5, 4, 5);
 
-    // Yeah, I might actually add a streetlight back here for some lighting.
+    draw_back();
+    // draw_car();
+    // draw_streetlights();
 
 }
 
@@ -376,6 +374,33 @@ function draw_car() {
     modelMatrix = popMatrix();
 
 }
+
+function draw_back() {
+
+    draw_structure(-2.5, 0, -2, 2, 3, 2);
+
+    pushMatrix(modelMatrix);
+
+    modelMatrix.rotate(180, 0, 1, 0);
+    modelMatrix.translate(0, 0, 4.1);
+
+    // draw_nathaniel_window(0.6, 3.45, -2.1);
+    // draw_nathaniel_window(-1.8, 3.45, -2.1);
+    // draw_nathaniel_window(-1.8, 0.75, -2.1);
+
+    modelMatrix = popMatrix();
+
+    pushMatrix(modelMatrix);
+
+    modelMatrix.rotate(90, 0, 1, 0);
+    modelMatrix.translate(0, 0, -4.49);
+
+    draw_door(4, 0.95, 4, 0.8, 1.9);
+
+    modelMatrix = popMatrix();
+
+}
+
 
 function draw_streetlights() {
 
@@ -485,7 +510,9 @@ function draw_structure(x, y, z, height, depth, width) {
     let roof_length = depth / 2;
     let roof_height = 1;
     let roof_slope = Math.sqrt(Math.pow(roof_height, 2) + Math.pow(roof_length, 2));
-    let n = initCubeVertexBuffers(gl, 1, 1, 1, 1);
+    let n = initCubeVertexBuffers(gl, 203/255, 115/255, 65/255);
+
+    // Again: this would ideally just be a bunch of planes
 
     if (n < 0) {
 
@@ -501,21 +528,27 @@ function draw_structure(x, y, z, height, depth, width) {
 
     draw_cube(n, 0);
 
-    // Let's move the sun!
+    modelMatrix = popMatrix();
+
+    let thiccness = 0.0001;
+    n = initPlaneVertexBuffers(gl, 0.2, 0.2, 0.2);
+
+    if (n < 0) {
+
+        console.log('Failed to set the vertex information');
+        return;
+    }
+
+    pushMatrix(modelMatrix);
+
+    modelMatrix.setRotate(-90, 1, 0, 0);
+    modelMatrix.translate(0, 0, 6);
+    modelMatrix.scale(width, roof_slope, thiccness);
+
+    draw_plane(n);
 
     modelMatrix = popMatrix();
 
-    // pushMatrix(modelMatrix);
-    // modelMatrix.translate(x + width / 2, y + height, z - depth / 2);
-    // modelMatrix.scale(width, height, depth);
-    //
-    // draw_cube(n, 2);
-    //
-    // modelMatrix = popMatrix();
-
-    // It will ruin my windows, for sure.
-    // It'd be a matter of adjusting my vertex buffers. But first things first! Roof, then I'll make some streetlights,
-    // and make them light sources.
 
 }
 
@@ -821,9 +854,6 @@ function draw_front_window(x, y, z) {
     modelMatrix = popMatrix();
 
 }
-
-// Sophie had car, wheels, a door and windows. I'm not... ah fuck it. I could probably make wheels....
-// I wonder if I could make it turn or something...
 
 function draw_door(x, y, z, width, height) {
 
