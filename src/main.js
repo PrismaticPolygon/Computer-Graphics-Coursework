@@ -550,15 +550,13 @@ function draw_floor() {
 
 let blind_height = 0;
 
-function draw_window(x, y, z, width, height, alpha) {
+function draw_window(x, y, z, width, height, alpha = 0.4) {
 
     // Forms a window frame with transparent pane (alpha) - centre of pane at x, y, z
-    // Total size - width + 0.09 * height + 0.09 * 0.1
+    // Total size: (width + 2 * frame_width, height + 2 * frame_width, frame_depth)
 
-    pushMatrix(modelMatrix);
-    modelMatrix.translate(x, y, z);
-
-    // Draw frame
+    let frame_width = 0.045;
+    let frame_depth = 0.1;
     let n = initCubeVertexBuffers(gl, 1, 1, 1);
 
     if (n < 0) {
@@ -566,15 +564,20 @@ function draw_window(x, y, z, width, height, alpha) {
         return;
     }
 
+    pushMatrix(modelMatrix);
+
+    modelMatrix.translate(x, y, z);
+
     for (let i = 0; i <= 1; i++){
 
         let sign = Math.pow(-1, i);
+
         // Top/bottom
         pushMatrix(modelMatrix);
 
         modelMatrix.translate(0 , sign * height / 2, 0);
         modelMatrix.rotate(90, 0, 0, 1);
-        modelMatrix.scale(0.045, width + 0.045, 0.1);
+        modelMatrix.scale(frame_width, width + frame_width, frame_depth);
 
         draw_cube(n, 1);
 
@@ -584,7 +587,7 @@ function draw_window(x, y, z, width, height, alpha) {
         pushMatrix(modelMatrix);
 
         modelMatrix.translate(sign * width / 2, 0, 0);
-        modelMatrix.scale(0.045, height + 0.045, 0.1);
+        modelMatrix.scale(frame_width, height + frame_width, frame_depth);
         draw_cube(n, 1);
 
         modelMatrix = popMatrix();
@@ -592,7 +595,7 @@ function draw_window(x, y, z, width, height, alpha) {
 
     pushMatrix(modelMatrix);
 
-    // Draw glass - transparent
+    // Draw glass plane
     n = initPlaneVertexBuffers(gl, 1, 1, 1, alpha);
 
     if (n < 0) {
@@ -613,8 +616,6 @@ function draw_window(x, y, z, width, height, alpha) {
         console.log('Failed to set the vertex information');
         return;
     }
-
-    // Might need translating...
 
     let actual = Math.min(blind_height, height);
 
