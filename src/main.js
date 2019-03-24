@@ -21,13 +21,13 @@ const LIGHT_COLORS = [
 ];
 
 let light_colors = [
+    0, 0, 0,    // Streetlights start as OFF
     0, 0, 0,
     0, 0, 0,
-    0, 0, 0,
-    253/255, 253/255, 254/255
+    253/255, 253/255, 254/255   //Sun starts as on
 ];
 
-let INIT_TEXTURE_COUNT = 0;
+let INIT_TEXTURE_COUNT = 0; // How many textures need to be loaded
 let USE_TEXTURES = false;
 let USE_STREETLIGHTS = false;
 let USE_SUN = true;
@@ -42,17 +42,17 @@ let g_lookAtDelta = 0.05;  // The rotation delta of the angle the eye is looking
 let yaw = 180;    // (+left, -right)
 let pitch = 100;  // (0 up, 180 down)
 
-let canvas, hud;
-let gl;
+let canvas, hud;    // The canvas elements we draw to
+let gl; // WebGL context
 let u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjMatrix, u_UseTextures, u_Sampler, u_LightColor, u_LightPosition, u_AmbientLight;
-let keys = [];
+let keys = [];  // Holds the keys currently pressed down
 
-let matrixStack = [];
+let matrixStack = [];   // Used to avoid repetitive transformations
 
-let car_x = 0, car_y = 0, car_z = 5;
+let car_x = 0, car_y = 0, car_z = 5; //Car co-ordinates
 let then = 0;
 let delta = 0;
-let blind_height = 0;
+let blind_height = 0;   //Global blind height
 
 function pushMatrix(m) {
 
