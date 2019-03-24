@@ -1,6 +1,3 @@
-// 20 marks for textures  --> get textures the same sizes, and this will be done
-// 20 marks for lighting and cameras --> finish the sun, and this will be done
-// 20 marks for my own 3D models
 // 20 marks for one building, a landscape around it, and some meaningful objects enriching the surroundings.
 // 20 marks for constructing movable models. Nice!
 
@@ -17,28 +14,33 @@ const LIGHT_POSITIONS = [
 ];
 
 const LIGHT_COLORS = [
-    255/255, 241/255, 224/255,
-    255/255, 241/255, 224/255,
-    255/255, 241/255, 224/255,
+    200/255, 200/255, 200/255,
+    200/255, 200/255, 200/255,
+    200/255, 200/255, 200/255,
     253/255, 253/255, 254/255
 ];
 
-let light_colors = [...LIGHT_COLORS];
+let light_colors = [
+    0, 0, 0,
+    0, 0, 0,
+    0, 0, 0,
+    253/255, 253/255, 254/255
+];
 
 let INIT_TEXTURE_COUNT = 0;
 let USE_TEXTURES = false;
-let USE_STREETLIGHTS = true;
+let USE_STREETLIGHTS = false;
 let USE_SUN = true;
 let OPEN_DOORS = false;
 
 let g_atX = 0;    // The x co-ordinate of the eye
-let g_atY = 3;    // The y co-ordinate of the eye
-let g_atZ = 15;    // The z co-ordinate of the eye
+let g_atY = 5;    // The y co-ordinate of the eye
+let g_atZ = 16;    // The z co-ordinate of the eye
 
 let g_atDelta = 0.005;    // The movement delta of the eye
 let g_lookAtDelta = 0.05;  // The rotation delta of the angle the eye is looking at (degrees)
 let yaw = 180;    // (+left, -right)
-let pitch = 90;  // (0 up, 180 down)
+let pitch = 100;  // (0 up, 180 down)
 
 let canvas, hud;
 let gl;
@@ -97,7 +99,7 @@ function main() {
 
     // Set up lighting
     gl.uniform3f(u_AmbientLight, ...light_colors.slice(9, 12));
-    gl.uniform3fv(u_LightColor,LIGHT_COLORS);
+    gl.uniform3fv(u_LightColor, light_colors);
     gl.uniform3fv(u_LightPosition, LIGHT_POSITIONS);
 
     // Initialise textures
@@ -252,19 +254,19 @@ function handleContinuousKeys() {
 
                 break;
 
-            case "z":  // z key -> lower blind
+            case "x":  // z key -> lower blind
 
                 blind_height += 0.01;
 
-                if (blind_height > 0.8) {
+                if (blind_height > 1.4) {
 
-                    blind_height = 0.8;
+                    blind_height = 1.4;
 
                 }
 
                 break;
 
-            case "x":  // x key -> raise blind
+            case "z":  // x key -> raise blind
 
                 blind_height -= 0.01;
 
@@ -313,14 +315,14 @@ function draw() {
     gl.uniformMatrix4fv(u_ViewMatrix, false, viewMatrix.elements);
 
     draw_floor();
-    // draw_front_door(-1.6, 0, 2);
-    // draw_front_window(-0.2, 0, 2);
-    // draw_nathaniel_window(0.2, 3.45, 2);
+    draw_front_door(-1.6, 0, 2.01);
+    draw_front_window(-0.2, 0, 2);
+    draw_nathaniel_window(0.2, 3.45, 2);
     draw_structure(-2.5, 0, 2, 5.5, 4, 5);
 
     draw_back();
-    // draw_car();
-    // draw_streetlights();
+    draw_car();
+    draw_streetlights();
 
 }
 
@@ -359,7 +361,7 @@ function draw_car() {
     modelMatrix.translate(0, car_height / 2, 0);
     modelMatrix.scale(car_length, car_height, car_width);
 
-    draw_cube(n);
+    draw_cube(n, 5);
 
     modelMatrix = popMatrix();
 
@@ -368,7 +370,7 @@ function draw_car() {
     modelMatrix.translate(0, car_height + cockpit_height / 2, 0);
     modelMatrix.scale(cockpit_length, cockpit_height, car_width);
 
-    draw_cube(n);
+    draw_cube(n, 5);
 
     modelMatrix = popMatrix();
     modelMatrix = popMatrix();
@@ -384,9 +386,9 @@ function draw_back() {
     modelMatrix.rotate(180, 0, 1, 0);
     modelMatrix.translate(0, 0, 4.1);
 
-    // draw_nathaniel_window(0.6, 3.45, -2.1);
-    // draw_nathaniel_window(-1.8, 3.45, -2.1);
-    // draw_nathaniel_window(-1.8, 0.75, -2.1);
+    draw_nathaniel_window(0.6, 3.45, -2.1);
+    draw_nathaniel_window(-1.8, 3.45, -2.1);
+    draw_nathaniel_window(-1.8, 0.75, -2.1);
 
     modelMatrix = popMatrix();
 
@@ -400,7 +402,6 @@ function draw_back() {
     modelMatrix = popMatrix();
 
 }
-
 
 function draw_streetlights() {
 
@@ -507,9 +508,7 @@ function draw_streetlights() {
 
 function draw_structure(x, y, z, height, depth, width) {
 
-    let roof_length = depth / 2;
     let roof_height = 1;
-    let roof_slope = Math.sqrt(Math.pow(roof_height, 2) + Math.pow(roof_length, 2));
     let n = initCubeVertexBuffers(gl, 203/255, 115/255, 65/255);
 
     // Again: this would ideally just be a bunch of planes
@@ -530,22 +529,15 @@ function draw_structure(x, y, z, height, depth, width) {
 
     modelMatrix = popMatrix();
 
-    let thiccness = 0.0001;
-    n = initPlaneVertexBuffers(gl, 0.2, 0.2, 0.2);
-
-    if (n < 0) {
-
-        console.log('Failed to set the vertex information');
-        return;
-    }
+    n = initCubeVertexBuffers(gl, 0.5, 0.5, 0.5);
 
     pushMatrix(modelMatrix);
 
-    modelMatrix.setRotate(-90, 1, 0, 0);
-    modelMatrix.translate(0, 0, 6);
-    modelMatrix.scale(width, roof_slope, thiccness);
+    modelMatrix.setTranslate(x + width / 2 - 0.01, y + height, z - depth / 2);
+    modelMatrix.scale(width - 0.02, roof_height, depth - roof_height);
+    modelMatrix.rotate(45, 1, 0, 0);
 
-    draw_plane(n);
+    draw_cube(n, 2);
 
     modelMatrix = popMatrix();
 
@@ -565,11 +557,11 @@ function draw_floor() {
 
     pushMatrix(modelMatrix);
 
-    modelMatrix.setRotate(-90, 1, 0, 0);
+    modelMatrix.setRotate(90, 1, 0, 0);
     modelMatrix.translate(0, 0, -height);
     modelMatrix.scale(8, 12, height);
 
-    draw_plane(n);
+    draw_plane(n, 6);
 
     modelMatrix = popMatrix();
 
@@ -700,11 +692,8 @@ function draw_front_window(x, y, z) {
 
     let middle_size = 1.2;
     let top_height = 0.5;
-    let slope_height = 1.2;
     let depth = 0.4;
     let side_size = Math.sqrt(Math.pow(depth, 2) + Math.pow(depth, 2));
-    // let slope_length = Math.sqrt(Math.pow(1.6, 2) + Math.pow(side_size, 2));
-    // let slope_angle = Math.atan(1.6 / 0.4);
     let bottom_height = 0.7;
     let n = initCubeVertexBuffers(gl, 203/255, 115/255, 65/255);
 
@@ -756,6 +745,7 @@ function draw_front_window(x, y, z) {
 
     }
 
+
     //top
     {
 
@@ -793,22 +783,23 @@ function draw_front_window(x, y, z) {
 
     }
     //
-    // //roof
-    // {
-    //
-    //     pushMatrix(modelMatrix);
-    //
-    //     modelMatrix.translate(depth / 2 + middle_size / 2, bottom_height + middle_height + top_height + (slope_height - depth) / 2 + 0.03, 1.92);
-    //     modelMatrix.rotate(-22, 1, 0, 0);
-    //     modelMatrix.scale(middle_size, slope_height, side_size);
-    //
-    //     draw_cube(n, 2);
-    //
-    //     modelMatrix = popMatrix();
-    //
-    // }
+    //roof
 
-    // I think the matrix gets progressively more fucked, though.
+    n = initCubeVertexBuffers(gl, 0.5, 0.5, 0.5);
+
+    {
+
+        pushMatrix(modelMatrix);
+
+        modelMatrix.translate(depth + middle_size / 2, bottom_height + middle_size + top_height + (middle_size - depth) / 2, - depth / 6);
+        modelMatrix.rotate(-22, 1, 0, 0);
+        modelMatrix.scale(middle_size, middle_size, side_size);
+
+        draw_cube(n, 2);
+
+        modelMatrix = popMatrix();
+
+    }
 
     //window
     {
@@ -1027,9 +1018,9 @@ function createTexture(gl, name, id){
         if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
 
             gl.generateMipmap(gl.TEXTURE_2D);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
         } else {
 
@@ -1052,11 +1043,13 @@ function createTexture(gl, name, id){
 function initTextures() {
 
     // Setup texture mappings
-    createTexture(gl, '../textures/bricks2.jpg', gl.TEXTURE0);
+    createTexture(gl, '../textures/bricks.jpg', gl.TEXTURE0);
     createTexture(gl, '../textures/white_wood.jpg', gl.TEXTURE1);
     createTexture(gl, '../textures/slate.jpg', gl.TEXTURE2);
     createTexture(gl, '../textures/door.png', gl.TEXTURE3);
     createTexture(gl, '../textures/concrete.jpg', gl.TEXTURE4);
+    createTexture(gl, '../textures/car_texture.jpg', gl.TEXTURE5);
+    createTexture(gl, '../textures/asphalt.jpg', gl.TEXTURE6);
 
     return true;
 
@@ -1077,14 +1070,15 @@ function draw_HUD() {
 
     ctx.fillText('Move camera position = WASD', 5, 60);
     ctx.fillText('Move camera view = arrow keys', 5, 75);
-    ctx.fillText('Raise / lower blinds = X / Z', 5, 90);
+    ctx.fillText('Raise / lower camera view = SHIFT / CTRL', 5, 90);
+    ctx.fillText('Raise / lower blinds = Z / X', 5, 105);
 
-    ctx.fillText('', 5, 105);
+    ctx.fillText('', 5, 120);
 
-    ctx.fillText('Toggle textures = 1', 5, 120);
-    ctx.fillText('Toggle streetlights = 2', 5, 135);
-    ctx.fillText('Toggle day / night = 3', 5, 150);
-    ctx.fillText('Toggle doors = 4', 5, 165);
+    ctx.fillText('Toggle textures = 1', 5, 135);
+    ctx.fillText('Toggle streetlights = 2', 5, 150);
+    ctx.fillText('Toggle day / night = 3', 5, 165);
+    ctx.fillText('Toggle doors = 4', 5, 180);
 
 }
 
@@ -1126,7 +1120,14 @@ function draw_cube(n, texture) {
 
 }
 
-function draw_plane(n) {
+function draw_plane(n, texture) {
+
+    if (texture != null && USE_TEXTURES) {
+
+        gl.uniform1i(u_Sampler, texture);
+        gl.uniform1i(u_UseTextures, 1);
+
+    }
 
     pushMatrix(modelMatrix);
 
@@ -1142,5 +1143,11 @@ function draw_plane(n) {
     gl.drawArrays(gl.TRIANGLES, 0, n);
 
     modelMatrix = popMatrix();
+
+    if (texture != null) {
+
+        gl.uniform1i(u_UseTextures, 0);
+
+    }
 
 }

@@ -65,7 +65,7 @@ const FSHADER_SOURCE = `
             
             float distanceToLight = length(u_LightPosition[i] - v_Position);
             
-            attenuation = 1.0 / (1.0 + 0.03 * pow(distanceToLight, 2.0));
+            attenuation = 1.0 / (1.0 + 0.035 * pow(distanceToLight, 2.0));
         
             finalColor += attenuation * diffuse;
 
