@@ -10,6 +10,10 @@ differing implementation of `requestAnimationFrame`.
 In order to avoid CORS for textures, it is advised to host this directory locally,
 using `python -m http.server`. `index.html` can be then accessed appropriately. 
 
+## Libraries
+
+Although no high-level libraries (like `three.js`) were used, basic helper files can be found in `lib`.
+
 ## Interactivity
 
 The system provides the following functionality, detailed in a HUD:

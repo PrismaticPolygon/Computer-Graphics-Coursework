@@ -533,8 +533,8 @@ function draw_structure(x, y, z, height, depth, width) {
 
     pushMatrix(modelMatrix);
 
-    modelMatrix.setTranslate(x + width / 2 - 0.01, y + height, z - depth / 2);
-    modelMatrix.scale(width - 0.02, roof_height, depth - roof_height);
+    modelMatrix.setTranslate(x + width / 2 + 0.01, y + height, z - depth / 2);
+    modelMatrix.scale(width - 0.04, roof_height, depth - roof_height);
     modelMatrix.rotate(45, 1, 0, 0);
 
     draw_cube(n, 2);
